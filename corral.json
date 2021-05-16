@@ -1,0 +1,19 @@
+{
+  "packages": [
+    "protobuf"
+  ],
+  "deps": [
+    {
+      "locator": "github.com/ponylang/ponycheck.git",
+      "version": "0.6.0"
+    }
+  ],
+  "info": {
+    "description": "A protocol buffers library for Pony",
+    "homepage": "https://github.com/ergl/pony-protobuf",
+    "license": "BSD-2-Clause",
+    "documentation_url": "",
+    "version": "0.10",
+    "name": "protobuf"
+  }
+}
