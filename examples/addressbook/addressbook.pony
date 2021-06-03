@@ -37,12 +37,12 @@ class PersonPhoneNumber is ProtoMessage
     match number
     | None => None
     | let number': String =>
-      size = size + FieldSize.delimited_size(1, DelimitedField, number')
+      size = size + FieldSize.delimited(1, number')
     end
     match field_type
     | None => None
     | let field_type': PersonPhoneType =>
-      size = size + FieldSize.signed_size(2, VarintField, field_type'.as_i32().i64())
+      size = size + FieldSize.enum(2, field_type')
     end
     size
 
@@ -55,22 +55,22 @@ class PersonPhoneNumber is ProtoMessage
       | (2, VarintField) =>
         let n = IntegerDecoder.decode_signed(buffer) ?
         field_type = PersonPhoneTypeBuilder.from_i32(n.i32())
-      | (_, let typ: KeyType) => SkipField(typ, buffer) ?
+      | (_, let typ: TagKind) => SkipField(typ, buffer) ?
       end
     end
 
-  fun write_to_stream(buffer: Writer) =>
+  fun write_to_stream(writer: ProtoWriter) =>
     match number
     | None => None
     | let number': String =>
-      FieldTypeEncoder.encode_field(1, DelimitedField, buffer)
-      DelimitedEncoder.encode(number', buffer)
+      writer.write_tag(1, DelimitedField)
+      writer.write_bytes(number')
     end
     match field_type
     | None => None
     | let field_type': PersonPhoneType =>
-      FieldTypeEncoder.encode_field(2, VarintField, buffer)
-      IntegerEncoder.encode_signed(field_type'.as_i32().i64(), buffer)
+      writer.write_tag(2, VarintField)
+      writer.write_enum(field_type')
     end
 
 class Person is ProtoMessage
@@ -99,20 +99,20 @@ class Person is ProtoMessage
     match name
     | None => None
     | let name': String =>
-      size = size + FieldSize.delimited_size(1, DelimitedField, name')
+      size = size + FieldSize.delimited(1, name')
     end
     match id
     | None => None
     | let id': I32 =>
-      size = size + FieldSize.signed_size(2, VarintField, id'.i64())
+      size = size + FieldSize.varint[I32](2, id')
     end
     match email
     | None => None
     | let email': String =>
-      size = size + FieldSize.delimited_size(3, DelimitedField, email')
+      size = size + FieldSize.delimited(3, email')
     end
     for v in phone.values() do
-      size = size + FieldSize.embed_size(4, v)
+      size = size + FieldSize.inner_message(4, v)
     end
     size
 
@@ -132,33 +132,34 @@ class Person is ProtoMessage
         let v: PersonPhoneNumber = PersonPhoneNumber
         v.parse_from_stream(_reader .> append(buffer.block(size)?))?
         phone.push(v)
-      | (_, let typ: KeyType) => SkipField(typ, buffer) ?
+      | (_, let typ: TagKind) => SkipField(typ, buffer) ?
       end
     end
 
-  fun write_to_stream(buffer: Writer) =>
+  fun write_to_stream(writer: ProtoWriter) =>
     match name
     | None => None
     | let name': String =>
-      FieldTypeEncoder.encode_field(1, DelimitedField, buffer)
-      DelimitedEncoder.encode(name', buffer)
+      writer.write_tag(1, DelimitedField)
+      writer.write_bytes(name')
     end
     match id
     | None => None
     | let id': I32 =>
-      FieldTypeEncoder.encode_field(2, VarintField, buffer)
-      IntegerEncoder.encode_signed(id'.i64(), buffer)
+      writer.write_tag(2, VarintField)
+      writer.write_varint[I32](id')
     end
     match email
     | None => None
     | let email': String =>
-      FieldTypeEncoder.encode_field(3, DelimitedField, buffer)
-      DelimitedEncoder.encode(email', buffer)
+      writer.write_tag(3, DelimitedField)
+      writer.write_bytes(email')
     end
     for v in phone.values() do
-      FieldTypeEncoder.encode_field(4, DelimitedField, buffer)
-      IntegerEncoder.encode_unsigned(v.compute_size().u64(), buffer)
-      v.write_to_stream(buffer)
+      writer.write_tag(4, DelimitedField)
+      // TODO(borja): Call a "cached_size" or something, avoid recomputing
+      writer.write_varint[U32](v.compute_size())
+      v.write_to_stream(writer)
     end
 
 class AddressBook is ProtoMessage
@@ -176,7 +177,7 @@ class AddressBook is ProtoMessage
   fun compute_size(): U32 =>
     var size: U32 = 0
     for v in person.values() do
-      size = size + FieldSize.embed_size(1, v)
+      size = size + FieldSize.inner_message(1, v)
     end
     size
 
@@ -190,13 +191,13 @@ class AddressBook is ProtoMessage
         let v: Person = Person
         v.parse_from_stream(_reader .> append(buffer.block(size)?))?
         person.push(v)
-      | (_, let typ: KeyType) => SkipField(typ, buffer) ?
+      | (_, let typ: TagKind) => SkipField(typ, buffer) ?
       end
     end
 
-  fun write_to_stream(buffer: Writer) =>
+  fun write_to_stream(writer: ProtoWriter) =>
     for v in person.values() do
-      FieldTypeEncoder.encode_field(1, DelimitedField, buffer)
-      IntegerEncoder.encode_unsigned(v.compute_size().u64(), buffer)
-      v.write_to_stream(buffer)
+      writer.write_tag(1, DelimitedField)
+      writer.write_varint[U32](v.compute_size())
+      v.write_to_stream(writer)
     end

@@ -1,7 +1,7 @@
 use "buffered"
 
 primitive SkipField
-  fun apply(typ: KeyType, buffer: Reader) ? =>
+  fun apply(typ: TagKind, buffer: Reader) ? =>
     match typ
     | VarintField => _skip_varint(buffer) ?
     | Fixed32Field => buffer.skip(4) ?
@@ -17,19 +17,9 @@ primitive SkipField
     buffer.skip(size.usize()) ?
 
 primitive FieldTypeDecoder
-  fun decode_field(buffer: Reader): (U64, KeyType) ? =>
+  fun decode_field(buffer: Reader): (U64, TagKind) ? =>
     let raw = IntegerDecoder.decode_unsigned(buffer) ?
-    (raw >> 3, _typ_num(raw and 7)?)
-
-  fun _typ_num(n: U64): KeyType ? =>
-    match n
-    | 0 => VarintField
-    | 1 => Fixed64Field
-    | 2 => DelimitedField
-    | 5 => Fixed32Field
-    else
-      error
-    end
+    (raw >> 3, _TagUtil.from_num(raw and 7)?)
 
 primitive PackedDecoder
   fun decode_repeated_varint[T: (I32 | I64 | U32 | U64)](
@@ -64,10 +54,6 @@ primitive PackedDecoder
       end
     end
 
-primitive ZigZagDecoder
-  fun apply(n: U64): I64 =>
-    ((n >> 1) xor (n and 1).neg()).i64()
-
 primitive BoolDecoder
   fun apply(buffer: Reader): Bool ? =>
     let v = IntegerDecoder.decode_unsigned(buffer) ?
@@ -92,7 +78,7 @@ primitive IntegerDecoder
     decode_unsigned(buffer)?.i64()
 
   fun decode_signed_zigzag(buffer: Reader): I64 ? =>
-    ZigZagDecoder(decode_unsigned(buffer) ?)
+    ZigZag.decode_64(decode_unsigned(buffer) ?)
 
 primitive FloatDecoder
   fun decode(buffer: Reader): F32 ? => buffer.f32_le() ?

@@ -8,7 +8,7 @@ class TestPacked is ProtoMessage
   fun compute_size(): U32 =>
     var size: U32 = 0
     for v in values.values() do
-      size = size + FieldSize.packed_signed_size[I32](1, values)
+      size = size + FieldSize.packed_varint[I32](1, values)
     end
     size
 
@@ -26,18 +26,18 @@ class TestPacked is ProtoMessage
           values,
           _reader .> append(buffer.block(size)?)
         )?
-      | (_, let typ: KeyType) => SkipField(typ, buffer)?
+      | (_, let typ: TagKind) => SkipField(typ, buffer)?
       end
     end
 
-  fun write_to_stream(buffer: Writer) =>
+  fun write_to_stream(writer: ProtoWriter) =>
     if values.size() != 0 then
       var values_size: U32 = 0
       for v in values.values() do
-        values_size = values_size + FieldSize.raw_varint_size(v.u64())
+        values_size = values_size + FieldSize.raw_varint(v.u64())
       end
-      FieldTypeEncoder.encode_field(1, DelimitedField, buffer)
-      PackedEncoder.encode_packed_varint[I32](values, values_size, buffer)
+      writer.write_tag(1, DelimitedField)
+      writer.write_packed_varint[I32](values, values_size)
     end
 
 class TestUnpacked is ProtoMessage
@@ -46,7 +46,7 @@ class TestUnpacked is ProtoMessage
   fun compute_size(): U32 =>
     var size: U32 = 0
     for v in values.values() do
-      size = size + FieldSize.signed_size(1, VarintField, v.i64())
+      size = size + FieldSize.varint[I32](1, v)
     end
     size
 
@@ -57,12 +57,12 @@ class TestUnpacked is ProtoMessage
       | (1, VarintField) =>
         let v = IntegerDecoder.decode_signed(buffer)?.i32()
         values.push(v)
-      | (_, let typ: KeyType) => SkipField(typ, buffer)?
+      | (_, let typ: TagKind) => SkipField(typ, buffer)?
       end
     end
 
-  fun write_to_stream(buffer: Writer) =>
+  fun write_to_stream(writer: ProtoWriter) =>
     for v in values.values() do
-      FieldTypeEncoder.encode_field(1, VarintField, buffer)
-      IntegerEncoder.encode_signed(v.i64(), buffer)
+      writer.write_tag(1, VarintField)
+      writer.write_varint[I32](v)
     end

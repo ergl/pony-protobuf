@@ -43,7 +43,7 @@ class FileDescriptorProto is ProtoMessage
         extension.push(v)
       | (12, DelimitedField) =>
         syntax = DelimitedDecoder.decode_string(buffer)?
-      | (_, let typ : KeyType) => SkipField(typ, buffer) ?
+      | (_, let typ: TagKind) => SkipField(typ, buffer) ?
       end
     end
 

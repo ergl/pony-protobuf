@@ -13,7 +13,7 @@ class EnumDescriptorProtoEnumReservedRange is ProtoMessage
         start = IntegerDecoder.decode_signed(buffer)?.i32()
       | (2, VarintField) =>
         field_end = IntegerDecoder.decode_signed(buffer)?.i32()
-      | (_, let typ : KeyType) => SkipField(typ, buffer) ?
+      | (_, let typ: TagKind) => SkipField(typ, buffer) ?
       end
     end
 
@@ -29,7 +29,7 @@ class EnumValueDescriptorProto is ProtoMessage
         name = DelimitedDecoder.decode_string(buffer) ?
       | (2, VarintField) =>
         number = IntegerDecoder.decode_signed(buffer)?.i32()
-      | (_, let typ : KeyType) => SkipField(typ, buffer) ?
+      | (_, let typ: TagKind) => SkipField(typ, buffer) ?
       end
     end
 
@@ -60,6 +60,6 @@ class EnumDescriptorProto is ProtoMessage
         reserved_range.push(v)
       | (5, DelimitedField) =>
         reserved_name = DelimitedDecoder.decode_string(buffer) ?
-      | (_, let typ : KeyType) => SkipField(typ, buffer) ?
+      | (_, let typ: TagKind) => SkipField(typ, buffer) ?
       end
     end

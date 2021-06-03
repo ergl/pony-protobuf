@@ -1,5 +1,6 @@
 use "format"
 use "buffered"
+use "../../protobuf"
 
 actor Main
   new create(env: Env) =>
@@ -41,23 +42,14 @@ actor Main
     p
 
   fun bytes_for_unpacked(up: TestUnpacked): Array[U8] val =>
-    let w: Writer = Writer
+    let w = ProtoWriter
     up.write_to_stream(w)
-    squash(w.done())
+    w.done_array()
 
   fun bytes_for_packed(p: TestPacked): Array[U8] val =>
-    let w: Writer = Writer
+    let w = ProtoWriter
     p.write_to_stream(w)
-    squash(w.done())
-
-  fun squash(buffer: Array[ByteSeq] iso^): Array[U8] val^ =>
-    recover
-      let b = Array[U8](buffer.size())
-      for elt in buffer.values() do
-        b.append(elt)
-      end
-      consume b
-    end
+    w.done_array()
 
   fun array_eq(l: Array[U8] val, r: Array[U8] val): Bool =>
     if l.size() != r.size() then return false end

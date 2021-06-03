@@ -10,7 +10,7 @@ class OneofDescriptorProto is ProtoMessage
       match t
       | (1, DelimitedField) =>
         name = DelimitedDecoder.decode_string(buffer) ?
-      | (_, let typ : KeyType) => SkipField(typ, buffer) ?
+      | (_, let typ: TagKind) => SkipField(typ, buffer) ?
       end
     end
 
@@ -26,7 +26,7 @@ class DescriptorProtoExtensionRange is ProtoMessage
         start = IntegerDecoder.decode_signed(buffer)?.i32()
       | (2, VarintField) =>
         field_end = IntegerDecoder.decode_signed(buffer)?.i32()
-      | (_, let typ : KeyType) => SkipField(typ, buffer) ?
+      | (_, let typ: TagKind) => SkipField(typ, buffer) ?
       end
     end
 
@@ -42,7 +42,7 @@ class DescriptorProtoReservedRange is ProtoMessage
         start = IntegerDecoder.decode_signed(buffer)?.i32()
       | (2, VarintField) =>
         field_end = IntegerDecoder.decode_signed(buffer)?.i32()
-      | (_, let typ : KeyType) => SkipField(typ, buffer) ?
+      | (_, let typ: TagKind) => SkipField(typ, buffer) ?
       end
     end
 
@@ -55,7 +55,7 @@ class MessageOptions is ProtoMessage
       match t
       | (1, VarintField) =>
         map_entry = BoolDecoder(buffer) ?
-      | (_, let typ : KeyType) => SkipField(typ, buffer) ?
+      | (_, let typ: TagKind) => SkipField(typ, buffer) ?
       end
     end
 
@@ -128,6 +128,6 @@ class DescriptorProto is ProtoMessage
         reserved_range.push(v)
       | (10, DelimitedField) =>
         reserved_name = DelimitedDecoder.decode_string(buffer) ?
-      | (_, let typ : KeyType) => SkipField(typ, buffer) ?
+      | (_, let typ: TagKind) => SkipField(typ, buffer) ?
       end
     end

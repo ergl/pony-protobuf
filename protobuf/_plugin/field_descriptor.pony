@@ -135,7 +135,7 @@ class FieldOptions is ProtoMessage
       match t
       | (2, VarintField) =>
         packed = BoolDecoder(buffer)?
-      | (_, let typ : KeyType) => SkipField(typ, buffer) ?
+      | (_, let typ: TagKind) => SkipField(typ, buffer) ?
       end
     end
 
@@ -185,6 +185,6 @@ class FieldDescriptorProto is ProtoMessage
         options = v
       | (17, VarintField) =>
         proto3_optional = BoolDecoder(buffer)?
-      | (_, let typ : KeyType) => SkipField(typ, buffer) ?
+      | (_, let typ: TagKind) => SkipField(typ, buffer) ?
       end
     end

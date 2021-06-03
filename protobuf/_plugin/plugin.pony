@@ -12,22 +12,22 @@ class Version is ProtoMessage
     match major
     | None => None
     | let major': I32 =>
-      size = size + FieldSize.signed_size(1, VarintField, major'.i64())
+      size = size + FieldSize.varint[I32](1, major')
     end
     match minor
     | None => None
     | let minor': I32 =>
-      size = size + FieldSize.signed_size(2, VarintField, minor'.i64())
+      size = size + FieldSize.varint[I32](2, minor')
     end
     match patch
     | None => None
     | let patch': I32 =>
-      size = size + FieldSize.signed_size(3, VarintField, patch'.i64())
+      size = size + FieldSize.varint[I32](3, patch')
     end
     match suffix
     | None => None
     | let suffix': String =>
-      size = size + FieldSize.delimited_size(4, DelimitedField, suffix')
+      size = size + FieldSize.delimited(4, suffix')
     end
     size
 
@@ -43,34 +43,34 @@ class Version is ProtoMessage
         patch = IntegerDecoder.decode_signed(buffer)?.i32()
       | (4, DelimitedField) =>
         suffix = DelimitedDecoder.decode_string(buffer)?
-      | (_, let typ: KeyType) => SkipField(typ, buffer) ?
+      | (_, let typ: TagKind) => SkipField(typ, buffer) ?
       end
     end
 
-  fun write_to_stream(buffer: Writer) =>
+  fun write_to_stream(writer: ProtoWriter) =>
     match major
     | None => None
     | let major': I32 =>
-      FieldTypeEncoder.encode_field(1, VarintField, buffer)
-      IntegerEncoder.encode_signed(major'.i64(), buffer)
+      writer.write_tag(1, VarintField)
+      writer.write_varint[I32](major')
     end
     match minor
     | None => None
     | let minor': I32 =>
-      FieldTypeEncoder.encode_field(2, VarintField, buffer)
-      IntegerEncoder.encode_signed(minor'.i64(), buffer)
+      writer.write_tag(2, VarintField)
+      writer.write_varint[I32](minor')
     end
     match patch
     | None => None
     | let patch': I32 =>
-      FieldTypeEncoder.encode_field(3, VarintField, buffer)
-      IntegerEncoder.encode_signed(patch'.i64(), buffer)
+      writer.write_tag(3, VarintField)
+      writer.write_varint[I32](patch')
     end
     match suffix
     | None => None
     | let suffix': String =>
-      FieldTypeEncoder.encode_field(4, DelimitedField, buffer)
-      DelimitedEncoder.encode(suffix', buffer)
+      writer.write_tag(4, DelimitedField)
+      writer.write_bytes(suffix')
     end
 
 class CodeGeneratorRequest is ProtoMessage
@@ -83,20 +83,20 @@ class CodeGeneratorRequest is ProtoMessage
   fun compute_size(): U32 =>
     var size: U32 = 0
     for v in file_to_generate.values() do
-      size = size + FieldSize.delimited_size(1, DelimitedField, v)
+      size = size + FieldSize.delimited(1, v)
     end
     match parameter
     | None => None
     | let parameter': String =>
-      size = size + FieldSize.delimited_size(2, DelimitedField, parameter')
+      size = size + FieldSize.delimited(2, parameter')
     end
     for v in proto_file.values() do
-      size = size + FieldSize.embed_size(15, v)
+      size = size + FieldSize.inner_message(15, v)
     end
     match compiler_version
     | None => None
     | let compiler_version': this->Version =>
-      size = size + FieldSize.embed_size(3, compiler_version')
+      size = size + FieldSize.inner_message(3, compiler_version')
     end
     size
 
@@ -120,32 +120,32 @@ class CodeGeneratorRequest is ProtoMessage
         let v: Version = Version
         v.parse_from_stream(_reader .> append(buffer.block(size)?)) ?
         compiler_version = v
-      | (_, let typ: KeyType) => SkipField(typ, buffer) ?
+      | (_, let typ: TagKind) => SkipField(typ, buffer) ?
       end
     end
 
-  fun write_to_stream(buffer: Writer) =>
+  fun write_to_stream(writer: ProtoWriter) =>
     for v in file_to_generate.values() do
-      FieldTypeEncoder.encode_field(1, DelimitedField, buffer)
-      DelimitedEncoder.encode(v, buffer)
+      writer.write_tag(1, DelimitedField)
+      writer.write_bytes(v)
     end
     match parameter
     | None => None
     | let parameter': String =>
-      FieldTypeEncoder.encode_field(2, DelimitedField, buffer)
-      DelimitedEncoder.encode(parameter', buffer)
+      writer.write_tag(2, DelimitedField)
+      writer.write_bytes(parameter')
     end
     for v in proto_file.values() do
-      FieldTypeEncoder.encode_field(15, DelimitedField, buffer)
-      IntegerEncoder.encode_unsigned(v.compute_size().u64(), buffer)
-      v.write_to_stream(buffer)
+      writer.write_tag(15, DelimitedField)
+      writer.write_varint[U32](v.compute_size())
+      v.write_to_stream(writer)
     end
     match compiler_version
     | None => None
     | let compiler_version': this->Version =>
-      FieldTypeEncoder.encode_field(3, DelimitedField, buffer)
-      IntegerEncoder.encode_unsigned(compiler_version'.compute_size().u64(), buffer)
-      compiler_version'.write_to_stream(buffer)
+      writer.write_tag(3, DelimitedField)
+      writer.write_varint[U32](compiler_version'.compute_size())
+      compiler_version'.write_to_stream(writer)
     end
 
 primitive CodeGeneratorResponseFeatureFEATURENONE is ProtoEnumValue
@@ -176,15 +176,15 @@ class CodeGeneratorResponse is ProtoMessage
     match field_error
     | None => None
     | let field_error': String =>
-      size = size + FieldSize.delimited_size(1, DelimitedField, field_error')
+      size = size + FieldSize.delimited(1, field_error')
     end
     match supported_features
     | None => None
     | let supported_features': U64 =>
-      size = size + FieldSize.unsigned_size(2, VarintField, supported_features')
+      size = size + FieldSize.varint[U64](2, supported_features')
     end
     for v in file.values() do
-      size = size + FieldSize.embed_size(15, v)
+      size = size + FieldSize.inner_message(15, v)
     end
     size
 
@@ -202,27 +202,27 @@ class CodeGeneratorResponse is ProtoMessage
         let v: CodeGeneratorResponseFile = CodeGeneratorResponseFile
         v.parse_from_stream(_reader .> append(buffer.block(size)?))?
         file.push(v)
-      | (_, let typ: KeyType) => SkipField(typ, buffer) ?
+      | (_, let typ: TagKind) => SkipField(typ, buffer) ?
       end
     end
 
-  fun write_to_stream(buffer: Writer) =>
+  fun write_to_stream(writer: ProtoWriter) =>
     match field_error
     | None => None
     | let field_error': String =>
-      FieldTypeEncoder.encode_field(1, DelimitedField, buffer)
-      DelimitedEncoder.encode(field_error', buffer)
+      writer.write_tag(1, DelimitedField)
+      writer.write_bytes(field_error')
     end
     match supported_features
     | None => None
     | let supported_features': U64 =>
-      FieldTypeEncoder.encode_field(2, VarintField, buffer)
-      IntegerEncoder.encode_unsigned(supported_features', buffer)
+      writer.write_tag(2, VarintField)
+      writer.write_varint[U64](supported_features')
     end
     for v in file.values() do
-      FieldTypeEncoder.encode_field(15, DelimitedField, buffer)
-      IntegerEncoder.encode_unsigned(v.compute_size().u64(), buffer)
-      v.write_to_stream(buffer)
+      writer.write_tag(15, DelimitedField)
+      writer.write_varint[U32](v.compute_size())
+      v.write_to_stream(writer)
     end
 
 class CodeGeneratorResponseFile is ProtoMessage
@@ -237,22 +237,22 @@ class CodeGeneratorResponseFile is ProtoMessage
     match name
     | None => None
     | let name': String =>
-      size = size + FieldSize.delimited_size(1, DelimitedField, name')
+      size = size + FieldSize.delimited(1, name')
     end
     match insertion_point
     | None => None
     | let insertion_point': String =>
-      size = size + FieldSize.delimited_size(2, DelimitedField, insertion_point')
+      size = size + FieldSize.delimited(2, insertion_point')
     end
     match content
     | None => None
     | let content': String =>
-      size = size + FieldSize.delimited_size(15, DelimitedField, content')
+      size = size + FieldSize.delimited(15, content')
     end
     match generated_code_info
     | None => None
     | let generated_code_info': this->GeneratedCodeInfo =>
-      size = size + FieldSize.embed_size(16, generated_code_info')
+      size = size + FieldSize.inner_message(16, generated_code_info')
     end
     size
 
@@ -272,33 +272,33 @@ class CodeGeneratorResponseFile is ProtoMessage
         let v: GeneratedCodeInfo = GeneratedCodeInfo
         v.parse_from_stream(_reader .> append(buffer.block(size)?))?
         generated_code_info = v
-      | (_, let typ: KeyType) => SkipField(typ, buffer) ?
+      | (_, let typ: TagKind) => SkipField(typ, buffer) ?
       end
     end
 
-  fun write_to_stream(buffer: Writer) =>
+  fun write_to_stream(writer: ProtoWriter) =>
     match name
     | None => None
     | let name': String =>
-      FieldTypeEncoder.encode_field(1, DelimitedField, buffer)
-      DelimitedEncoder.encode(name', buffer)
+      writer.write_tag(1, DelimitedField)
+      writer.write_bytes(name')
     end
     match insertion_point
     | None => None
     | let insertion_point': String =>
-      FieldTypeEncoder.encode_field(2, DelimitedField, buffer)
-      DelimitedEncoder.encode(insertion_point', buffer)
+      writer.write_tag(2, DelimitedField)
+      writer.write_bytes(insertion_point')
     end
     match content
     | None => None
     | let content': String =>
-      FieldTypeEncoder.encode_field(15, DelimitedField, buffer)
-      DelimitedEncoder.encode(content', buffer)
+      writer.write_tag(15, DelimitedField)
+      writer.write_bytes(content')
     end
     match generated_code_info
     | None => None
     | let generated_code_info': this->GeneratedCodeInfo =>
-      FieldTypeEncoder.encode_field(15, DelimitedField, buffer)
-      IntegerEncoder.encode_unsigned(generated_code_info'.compute_size().u64(), buffer)
-      generated_code_info'.write_to_stream(buffer)
+      writer.write_tag(15, DelimitedField)
+      writer.write_varint[U32](generated_code_info'.compute_size())
+      generated_code_info'.write_to_stream(writer)
     end

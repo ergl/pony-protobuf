@@ -1,3 +1,4 @@
+use ".."
 use "buffered"
 
 actor Main
@@ -29,7 +30,7 @@ actor Main
       _codegen_request.parse_from_stream(_reader)?
       _reader.clear()
       let resp = CodeGen(_codegen_request)
-      let writer: Writer = Writer
+      let writer = ProtoWriter
       resp.write_to_stream(writer)
       _env.out.writev(writer.done())
       _env.exitcode(0)
