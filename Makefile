@@ -1,4 +1,4 @@
-config ?= release
+config ?= debug
 
 PACKAGE := protobuf
 PROTOC_PLUGIN := protoc-gen-pony
