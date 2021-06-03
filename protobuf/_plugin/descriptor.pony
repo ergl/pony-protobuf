@@ -1,4 +1,3 @@
-use "buffered"
 use ".."
 
 class FileDescriptorProto is ProtoMessage
@@ -10,40 +9,32 @@ class FileDescriptorProto is ProtoMessage
   var enum_type: Array[EnumDescriptorProto] = Array[EnumDescriptorProto]
   var extension: Array[FieldDescriptorProto] = Array[FieldDescriptorProto]
   var syntax: (String | None) = None
-  embed _reader: Reader = Reader
 
-  fun ref parse_from_stream(buffer: Reader) ? =>
-    while buffer.size() > 0 do
-      let t = FieldTypeDecoder.decode_field(buffer) ?
-      match t
+  fun ref parse_from_stream(reader: ProtoReader) ? =>
+    while reader.size() > 0 do
+      match reader.read_field_tag()?
       | (1, DelimitedField) =>
-        name = DelimitedDecoder.decode_string(buffer) ?
+        name = reader.read_string()?
       | (2, DelimitedField) =>
-        package = DelimitedDecoder.decode_string(buffer) ?
+        package = reader.read_string()?
       | (10, VarintField) =>
-        let v = IntegerDecoder.decode_signed(buffer)?.i32()
+        let v = reader.read_varint_32()?.i32()
         public_dependency.push(v)
       | (4, DelimitedField) =>
-        _reader.clear()
-        let size = DelimitedDecoder.raw_decode_len(buffer) ?
         let v: DescriptorProto = DescriptorProto
-        v.parse_from_stream(_reader .> append(buffer.block(size)?))?
+        v.parse_from_stream(reader.pop_embed()?)?
         message_type.push(v)
       | (5, DelimitedField) =>
-        _reader.clear()
-        let size = DelimitedDecoder.raw_decode_len(buffer) ?
         let v: EnumDescriptorProto = EnumDescriptorProto
-        v.parse_from_stream(_reader .> append(buffer.block(size)?))?
+        v.parse_from_stream(reader.pop_embed()?)?
         enum_type.push(v)
       | (7, DelimitedField) =>
-        _reader.clear()
-        let size = DelimitedDecoder.raw_decode_len(buffer) ?
         let v: FieldDescriptorProto = FieldDescriptorProto
-        v.parse_from_stream(_reader .> append(buffer.block(size)?))?
+        v.parse_from_stream(reader.pop_embed()?)?
         extension.push(v)
       | (12, DelimitedField) =>
-        syntax = DelimitedDecoder.decode_string(buffer)?
-      | (_, let typ: TagKind) => SkipField(typ, buffer) ?
+        syntax = reader.read_string()?
+      | (_, let typ: TagKind) => reader.skip_field(typ)?
       end
     end
 

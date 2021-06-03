@@ -1,9 +1,7 @@
-use "buffered"
 use "../../protobuf"
 
 class TestPacked is ProtoMessage
   var values: Array[I32] = Array[I32]
-  embed _reader: Reader = Reader
 
   fun compute_size(): U32 =>
     var size: U32 = 0
@@ -12,21 +10,15 @@ class TestPacked is ProtoMessage
     end
     size
 
-  fun ref parse_from_stream(buffer: Reader) ? =>
-    while buffer.size() > 0 do
-      let t = FieldTypeDecoder.decode_field(buffer)?
-      match t
+  fun ref parse_from_stream(reader: ProtoReader) ? =>
+    while reader.size() > 0 do
+      match reader.read_field_tag()?
       | (1, VarintField) =>
-        let v = IntegerDecoder.decode_signed(buffer)?.i32()
+        let v = reader.read_varint_32()?.i32()
         values.push(v)
       | (1, DelimitedField) =>
-        _reader.clear()
-        let size = DelimitedDecoder.raw_decode_len(buffer)?
-        PackedDecoder.decode_repeated_varint[I32](
-          values,
-          _reader .> append(buffer.block(size)?)
-        )?
-      | (_, let typ: TagKind) => SkipField(typ, buffer)?
+        reader.read_packed_varint[I32](values)?
+      | (_, let typ: TagKind) => reader.skip_field(typ)?
       end
     end
 
@@ -50,14 +42,13 @@ class TestUnpacked is ProtoMessage
     end
     size
 
-  fun ref parse_from_stream(buffer: Reader) ? =>
-    while buffer.size() > 0 do
-      let t = FieldTypeDecoder.decode_field(buffer)?
-      match t
+  fun ref parse_from_stream(reader: ProtoReader) ? =>
+    while reader.size() > 0 do
+      match reader.read_field_tag()?
       | (1, VarintField) =>
-        let v = IntegerDecoder.decode_signed(buffer)?.i32()
+        let v = reader.read_varint_32()?.i32()
         values.push(v)
-      | (_, let typ: TagKind) => SkipField(typ, buffer)?
+      | (_, let typ: TagKind) => reader.skip_field(typ)?
       end
     end
 

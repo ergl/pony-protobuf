@@ -1,4 +1,3 @@
-use "buffered"
 use "../../protobuf"
 
 primitive PersonPhoneTypeMOBILE is ProtoEnumValue
@@ -46,16 +45,15 @@ class PersonPhoneNumber is ProtoMessage
     end
     size
 
-  fun ref parse_from_stream(buffer: Reader) ? =>
-    while buffer.size() > 0 do
-      let t = FieldTypeDecoder.decode_field(buffer) ?
-      match t
+  fun ref parse_from_stream(reader: ProtoReader) ? =>
+    while reader.size() > 0 do
+      match reader.read_field_tag() ?
       | (1, DelimitedField) =>
-        number = DelimitedDecoder.decode_string(buffer) ?
+        number = reader.read_string()?
       | (2, VarintField) =>
-        let n = IntegerDecoder.decode_signed(buffer) ?
-        field_type = PersonPhoneTypeBuilder.from_i32(n.i32())
-      | (_, let typ: TagKind) => SkipField(typ, buffer) ?
+        field_type =
+          PersonPhoneTypeBuilder.from_i32(reader.read_varint_32()?.i32())
+      | (_, let typ: TagKind) => reader.skip_field(typ)?
       end
     end
 
@@ -78,7 +76,6 @@ class Person is ProtoMessage
   var id: (I32 | None) = None
   var email: (String | None) = None
   var phone: Array[PersonPhoneNumber] = Array[PersonPhoneNumber]
-  embed _reader: Reader = Reader
 
   fun is_initialized(): Bool =>
     if name is None then
@@ -116,23 +113,20 @@ class Person is ProtoMessage
     end
     size
 
-  fun ref parse_from_stream(buffer: Reader) ? =>
-    while buffer.size() > 0 do
-      let t = FieldTypeDecoder.decode_field(buffer) ?
-      match t
+  fun ref parse_from_stream(reader: ProtoReader) ? =>
+    while reader.size() > 0 do
+      match reader.read_field_tag()?
       | (1, DelimitedField) =>
-        name = DelimitedDecoder.decode_string(buffer) ?
+        name = reader.read_string()?
       | (2, VarintField) =>
-        id = IntegerDecoder.decode_signed(buffer)?.i32()
+        id = reader.read_varint_32()?.i32()
       | (3, DelimitedField) =>
-        email = DelimitedDecoder.decode_string(buffer) ?
+        email = reader.read_string()?
       | (4, DelimitedField) =>
-        _reader.clear()
-        let size = DelimitedDecoder.raw_decode_len(buffer) ?
         let v: PersonPhoneNumber = PersonPhoneNumber
-        v.parse_from_stream(_reader .> append(buffer.block(size)?))?
+        v.parse_from_stream(reader.pop_embed()?)?
         phone.push(v)
-      | (_, let typ: TagKind) => SkipField(typ, buffer) ?
+      | (_, let typ: TagKind) => reader.skip_field(typ)?
       end
     end
 
@@ -164,7 +158,6 @@ class Person is ProtoMessage
 
 class AddressBook is ProtoMessage
   var person: Array[Person] = Array[Person]
-  embed _reader: Reader = Reader
 
   fun is_initialized(): Bool =>
     for v in person.values() do
@@ -181,17 +174,14 @@ class AddressBook is ProtoMessage
     end
     size
 
-  fun ref parse_from_stream(buffer: Reader) ? =>
-    while buffer.size() > 0 do
-      let t = FieldTypeDecoder.decode_field(buffer) ?
-      match t
+  fun ref parse_from_stream(reader: ProtoReader) ? =>
+    while reader.size() > 0 do
+      match reader.read_field_tag() ?
       | (1, DelimitedField) =>
-        _reader.clear()
-        let size = DelimitedDecoder.raw_decode_len(buffer) ?
         let v: Person = Person
-        v.parse_from_stream(_reader .> append(buffer.block(size)?))?
+        v.parse_from_stream(reader.pop_embed()?)?
         person.push(v)
-      | (_, let typ: TagKind) => SkipField(typ, buffer) ?
+      | (_, let typ: TagKind) => reader.skip_field(typ)?
       end
     end
 

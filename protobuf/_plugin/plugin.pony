@@ -1,4 +1,3 @@
-use "buffered"
 use ".."
 
 class Version is ProtoMessage
@@ -31,19 +30,18 @@ class Version is ProtoMessage
     end
     size
 
-  fun ref parse_from_stream(buffer: Reader) ? =>
-    while buffer.size() > 0 do
-      let t = FieldTypeDecoder.decode_field(buffer) ?
-      match t
+  fun ref parse_from_stream(reader: ProtoReader) ? =>
+    while reader.size() > 0 do
+      match reader.read_field_tag()?
       | (1, VarintField) =>
-        major = IntegerDecoder.decode_signed(buffer)?.i32()
+        major = reader.read_varint_32()?.i32()
       | (2, VarintField) =>
-        minor = IntegerDecoder.decode_signed(buffer)?.i32()
+        minor = reader.read_varint_32()?.i32()
       | (3, VarintField) =>
-        patch = IntegerDecoder.decode_signed(buffer)?.i32()
+        patch = reader.read_varint_32()?.i32()
       | (4, DelimitedField) =>
-        suffix = DelimitedDecoder.decode_string(buffer)?
-      | (_, let typ: TagKind) => SkipField(typ, buffer) ?
+        suffix = reader.read_string()?
+      | (_, let typ: TagKind) => reader.skip_field(typ)?
       end
     end
 
@@ -78,7 +76,6 @@ class CodeGeneratorRequest is ProtoMessage
   var parameter: (String | None) = None
   var proto_file: Array[FileDescriptorProto] = Array[FileDescriptorProto]
   var compiler_version: (Version | None) = None
-  embed _reader: Reader = Reader
 
   fun compute_size(): U32 =>
     var size: U32 = 0
@@ -100,27 +97,22 @@ class CodeGeneratorRequest is ProtoMessage
     end
     size
 
-  fun ref parse_from_stream(buffer: Reader) ? =>
-    while buffer.size() > 0 do
-      let t = FieldTypeDecoder.decode_field(buffer) ?
-      match t
+  fun ref parse_from_stream(reader: ProtoReader) ? =>
+    while reader.size() > 0 do
+      match reader.read_field_tag()?
       | (1, DelimitedField) =>
-        file_to_generate.push(DelimitedDecoder.decode_string(buffer)?)
+        file_to_generate.push(reader.read_string()?)
       | (2, DelimitedField) =>
-        parameter = DelimitedDecoder.decode_string(buffer) ?
+        parameter = reader.read_string()?
       | (15, DelimitedField) =>
-        _reader.clear()
-        let size = DelimitedDecoder.raw_decode_len(buffer) ?
         let v: FileDescriptorProto = FileDescriptorProto
-        v.parse_from_stream(_reader .> append(buffer.block(size)?))?
+        v.parse_from_stream(reader.pop_embed()?)?
         proto_file.push(v)
       | (3, DelimitedField) =>
-        _reader.clear()
-        let size = DelimitedDecoder.raw_decode_len(buffer) ?
         let v: Version = Version
-        v.parse_from_stream(_reader .> append(buffer.block(size)?)) ?
+        v.parse_from_stream(reader.pop_embed()?)?
         compiler_version = v
-      | (_, let typ: TagKind) => SkipField(typ, buffer) ?
+      | (_, let typ: TagKind) => reader.skip_field(typ)?
       end
     end
 
@@ -169,7 +161,6 @@ class CodeGeneratorResponse is ProtoMessage
   var field_error: (String | None) = None
   var supported_features: (U64 | None) = None
   var file: Array[CodeGeneratorResponseFile] = Array[CodeGeneratorResponseFile]
-  embed _reader: Reader = Reader
 
   fun compute_size(): U32 =>
     var size: U32 = 0
@@ -188,21 +179,18 @@ class CodeGeneratorResponse is ProtoMessage
     end
     size
 
-  fun ref parse_from_stream(buffer: Reader) ? =>
-    while buffer.size() > 0 do
-      let t = FieldTypeDecoder.decode_field(buffer) ?
-      match t
+  fun ref parse_from_stream(reader: ProtoReader) ? =>
+    while reader.size() > 0 do
+      match reader.read_field_tag()?
       | (1, DelimitedField) =>
-        field_error = DelimitedDecoder.decode_string(buffer)?
+        field_error = reader.read_string()?
       | (2, VarintField) =>
-        supported_features = IntegerDecoder.decode_unsigned(buffer)?
+        supported_features = reader.read_varint_64()?
       | (15, DelimitedField) =>
-        _reader.clear()
-        let size = DelimitedDecoder.raw_decode_len(buffer) ?
         let v: CodeGeneratorResponseFile = CodeGeneratorResponseFile
-        v.parse_from_stream(_reader .> append(buffer.block(size)?))?
+        v.parse_from_stream(reader.pop_embed()?)?
         file.push(v)
-      | (_, let typ: TagKind) => SkipField(typ, buffer) ?
+      | (_, let typ: TagKind) => reader.skip_field(typ)?
       end
     end
 
@@ -230,7 +218,6 @@ class CodeGeneratorResponseFile is ProtoMessage
   var insertion_point: (String | None) = None
   var content: (String | None) = None
   var generated_code_info: (GeneratedCodeInfo | None) = None
-  embed _reader: Reader = Reader
 
   fun compute_size(): U32 =>
     var size: U32 = 0
@@ -256,23 +243,20 @@ class CodeGeneratorResponseFile is ProtoMessage
     end
     size
 
-  fun ref parse_from_stream(buffer: Reader) ? =>
-    while buffer.size() > 0 do
-      let t = FieldTypeDecoder.decode_field(buffer) ?
-      match t
+  fun ref parse_from_stream(reader: ProtoReader) ? =>
+    while reader.size() > 0 do
+      match reader.read_field_tag()?
       | (1, DelimitedField) =>
-        name = DelimitedDecoder.decode_string(buffer)?
+        name = reader.read_string()?
       | (2, DelimitedField) =>
-        insertion_point = DelimitedDecoder.decode_string(buffer)?
+        insertion_point = reader.read_string()?
       | (15, DelimitedField) =>
-        content = DelimitedDecoder.decode_string(buffer)?
+        content = reader.read_string()?
       | (16, DelimitedField) =>
-        _reader.clear()
-        let size = DelimitedDecoder.raw_decode_len(buffer) ?
         let v: GeneratedCodeInfo = GeneratedCodeInfo
-        v.parse_from_stream(_reader .> append(buffer.block(size)?))?
+        v.parse_from_stream(reader.pop_embed()?)?
         generated_code_info = v
-      | (_, let typ: TagKind) => SkipField(typ, buffer) ?
+      | (_, let typ: TagKind) => reader.skip_field(typ)?
       end
     end
 

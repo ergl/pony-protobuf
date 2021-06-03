@@ -10,27 +10,6 @@ primitive _TestUtils
     end
     size
 
-primitive _VarintDecoder
-  fun decode_unsigned(data: Array[U8] val): U64 ? =>
-    IntegerDecoder.decode_unsigned(Reader .> append(data)) ?
-
-  fun decode_signed(data: Array[U8] val): I64 ? =>
-    IntegerDecoder.decode_signed(Reader .> append(data)) ?
-
-  fun decode_signed_zigzag(data: Array[U8] val): I64 ? =>
-    IntegerDecoder.decode_signed_zigzag(Reader .> append(data)) ?
-
-primitive _FixedDecoder
-  fun decode_f32(data: Array[U8] val): F32 ? =>
-    FloatDecoder.decode(Reader .> append(data)) ?
-
-  fun decode_f64(data: Array[U8] val): F64 ? =>
-    DoubleDecoder.decode(Reader .> append(data)) ?
-
-primitive _FieldTypeDecoder
-  fun decode_field(data: Array[U8] val): (U64, TagKind) ? =>
-    FieldTypeDecoder.decode_field(Reader .> append(data)) ?
-
 primitive _CustomGenerators
   fun field_n(): Generator[U64] =>
     // From https://developers.google.com/protocol-buffers/docs/proto#assigning_field_numbers
@@ -104,10 +83,10 @@ class iso _SimpleTest is UnitTest
     let buf_1 = recover val [as U8: 1] end
     let buf_300 = recover val [as U8: 0b1010_1100; 0b10] end
     try
-      let first = _VarintDecoder.decode_unsigned(buf_1) ?
+      let first = ProtoReader.>append(buf_1).read_varint_64()?
       t.assert_eq[U64](first, 1)
 
-      let second = _VarintDecoder.decode_unsigned(buf_300) ?
+      let second = ProtoReader.>append(buf_300).read_varint_64()?
       t.assert_eq[U64](second, 300)
 
       t.assert_array_eq[U8](
@@ -129,7 +108,7 @@ class iso _TestUnsignedEncodeProperty is Property1[U64]
   fun property(arg1: U64, ph: PropertyHelper) =>
     try
       let encoded = ProtoWriter.>write_varint[U64](arg1).done_array()
-      let decoded = _VarintDecoder.decode_unsigned(consume encoded) ?
+      let decoded = ProtoReader.>append(consume encoded).read_varint_64()?
       ph.assert_eq[U64](arg1, decoded)
     else
       ph.fail()
@@ -141,7 +120,7 @@ class iso _TestSignedEncodeProperty is Property1[I64]
   fun property(arg1: I64, ph: PropertyHelper) =>
     try
       let encoded = ProtoWriter.>write_varint[I64](arg1).done_array()
-      let decoded = _VarintDecoder.decode_signed(consume encoded) ?
+      let decoded = ProtoReader.>append(consume encoded).read_varint_64()?.i64()
       ph.assert_eq[I64](arg1, decoded)
     else
       ph.fail()
@@ -153,7 +132,7 @@ class iso _TestZigZagSignedEncodeProperty is Property1[I64]
   fun property(arg1: I64, ph: PropertyHelper) =>
     try
       let encoded = ProtoWriter.>write_varint_zigzag[I64](arg1).done_array()
-      let decoded = _VarintDecoder.decode_signed_zigzag(consume encoded) ?
+      let decoded = ProtoReader.>append(consume encoded).read_varint_zigzag_64()?
       ph.assert_eq[I64](arg1, decoded)
     else
       ph.fail()
@@ -165,7 +144,7 @@ class iso _TestFixed32EncodeProperty is Property1[F32]
   fun property(value: F32, ph: PropertyHelper) =>
     try
       let encoded = ProtoWriter.>write_fixed_32[F32](value).done_array()
-      let decoded = _FixedDecoder.decode_f32(consume encoded) ?
+      let decoded = ProtoReader.>append(consume encoded).read_fixed_32_float()?
       ph.assert_eq[F32](value, decoded)
     else
       ph.fail()
@@ -177,7 +156,7 @@ class iso _TestFixed64EncodeProperty is Property1[F64]
   fun property(value: F64, ph: PropertyHelper) =>
     try
       let encoded = ProtoWriter.>write_fixed_64[F64](value).done_array()
-      let decoded = _FixedDecoder.decode_f64(consume encoded) ?
+      let decoded = ProtoReader.>append(consume encoded).read_fixed_64_float()?
       ph.assert_eq[F64](value, decoded)
     else
       ph.fail()
@@ -188,9 +167,9 @@ class iso _TestDelimitedEncodeProperty is Property1[String]
   fun gen(): Generator[String] => Generators.byte_string(where gen = Generators.u8())
   fun property(value: String, ph: PropertyHelper) =>
     try
-      let reader = Reader.>append(ProtoWriter.>write_bytes(value).done_array())
-      let decoded: String = DelimitedDecoder.decode_string(consume reader) ?
-      ph.assert_eq[String](value, decoded)
+      let encoded = ProtoWriter.>write_bytes(value).done_array()
+      let decoded = ProtoReader.>append(consume encoded).read_string()?
+      ph.assert_eq[String](value, consume val decoded)
     else
       ph.fail()
     end
@@ -206,7 +185,7 @@ class iso _TestFieldTypeEncodeProperty is Property2[U64, TagKind]
         recover val
           ProtoWriter.>write_tag(arg1, arg2).done_array()
         end
-      let decoded = _FieldTypeDecoder.decode_field(encoded) ?
+      let decoded = ProtoReader.>append(encoded).read_field_tag()?
       ph.assert_eq[U64](arg1, decoded._1)
       ph.assert_is[TagKind](arg2, decoded._2)
     else
@@ -308,11 +287,13 @@ class iso _TestSkipUnsignedVarintProperty is Property1[U64]
   fun gen(): Generator[U64] => Generators.u64()
   fun property(arg1: U64, ph: PropertyHelper) =>
     try
-      let r: Reader =
-        Reader
-        .> append(ProtoWriter .> write_varint[U64](arg1).done_array())
-      SkipField(VarintField, r) ?
-      ph.assert_eq[USize](r.size(), 0)
+      let encoded = ProtoWriter .> write_varint[U64](arg1).done_array()
+      let size =
+        ProtoReader
+        .> append(consume encoded)
+        .> skip_field(VarintField)?
+        .size()
+      ph.assert_eq[USize](0, size)
     else
       ph.fail()
     end
@@ -322,11 +303,13 @@ class iso _TestSkipSignedVarintProperty is Property1[I64]
   fun gen(): Generator[I64] => Generators.i64()
   fun property(arg1: I64, ph: PropertyHelper) =>
     try
-      let r: Reader =
-        Reader
-        .> append(ProtoWriter .> write_varint[I64](arg1).done_array())
-      SkipField(VarintField, r) ?
-      ph.assert_eq[USize](r.size(), 0)
+      let encoded = ProtoWriter .> write_varint[I64](arg1).done_array()
+      let size =
+        ProtoReader
+        .> append(consume encoded)
+        .> skip_field(VarintField)?
+        .size()
+      ph.assert_eq[USize](0, size)
     else
       ph.fail()
     end
@@ -336,11 +319,13 @@ class iso _TestSkipZigZagSignedVarintProperty is Property1[I64]
   fun gen(): Generator[I64] => Generators.i64()
   fun property(arg1: I64, ph: PropertyHelper) =>
     try
-      let r: Reader =
-        Reader
-        .> append(ProtoWriter .> write_varint_zigzag[I64](arg1).done_array())
-      SkipField(VarintField, r) ?
-      ph.assert_eq[USize](r.size(), 0)
+      let encoded = ProtoWriter .> write_varint_zigzag[I64](arg1).done_array()
+      let size =
+        ProtoReader
+        .> append(consume encoded)
+        .> skip_field(VarintField)?
+        .size()
+      ph.assert_eq[USize](0, size)
     else
       ph.fail()
     end
@@ -350,11 +335,13 @@ class iso _TestSkipFixed32Property is Property1[F32]
   fun gen(): Generator[F32] => _CustomGenerators.f32()
   fun property(arg1: F32, ph: PropertyHelper) =>
     try
-      let r: Reader =
-        Reader
-        .> append(ProtoWriter .> write_fixed_32[F32](arg1).done_array())
-      SkipField(Fixed32Field, r) ?
-      ph.assert_eq[USize](r.size(), 0)
+      let encoded = ProtoWriter .> write_fixed_32[F32](arg1).done_array()
+      let size =
+        ProtoReader
+        .> append(consume encoded)
+        .> skip_field(Fixed32Field)?
+        .size()
+      ph.assert_eq[USize](0, size)
     else
       ph.fail()
     end
@@ -364,11 +351,13 @@ class iso _TestSkipFixed64Property is Property1[F64]
   fun gen(): Generator[F64] => _CustomGenerators.f64()
   fun property(arg1: F64, ph: PropertyHelper) =>
     try
-      let r: Reader =
-        Reader
-        .> append(ProtoWriter .> write_fixed_64[F64](arg1).done_array())
-      SkipField(Fixed64Field, r) ?
-      ph.assert_eq[USize](r.size(), 0)
+      let encoded = ProtoWriter .> write_fixed_64[F64](arg1).done_array()
+      let size =
+        ProtoReader
+        .> append(consume encoded)
+        .> skip_field(Fixed64Field)?
+        .size()
+      ph.assert_eq[USize](0, size)
     else
       ph.fail()
     end
@@ -378,11 +367,13 @@ class iso _TestSkipDelimitedProperty is Property1[String]
   fun gen(): Generator[String] => Generators.byte_string(where gen = Generators.u8())
   fun property(arg1: String, ph: PropertyHelper) =>
     try
-      let r: Reader =
-        Reader
-        .> append(ProtoWriter .> write_bytes(arg1).done_array())
-      SkipField(DelimitedField, r) ?
-      ph.assert_eq[USize](r.size(), 0)
+      let encoded = ProtoWriter .> write_bytes(arg1).done_array()
+      let size =
+        ProtoReader
+        .> append(consume encoded)
+        .> skip_field(DelimitedField)?
+        .size()
+      ph.assert_eq[USize](0, size)
     else
       ph.fail()
     end

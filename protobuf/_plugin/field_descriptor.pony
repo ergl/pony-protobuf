@@ -1,4 +1,3 @@
-use "buffered"
 use ".."
 
 primitive FieldDescriptorProtoTypeTYPEDOUBLE is ProtoEnumValue
@@ -129,13 +128,12 @@ primitive FieldDescriptorProtoLabelBuilder is ProtoEnum
 class FieldOptions is ProtoMessage
   var packed: (Bool | None) = None
 
-  fun ref parse_from_stream(buffer: Reader) ? =>
-    while buffer.size() > 0 do
-      let t = FieldTypeDecoder.decode_field(buffer) ?
-      match t
+  fun ref parse_from_stream(reader: ProtoReader) ? =>
+    while reader.size() > 0 do
+      match reader.read_field_tag()?
       | (2, VarintField) =>
-        packed = BoolDecoder(buffer)?
-      | (_, let typ: TagKind) => SkipField(typ, buffer) ?
+        packed = reader.read_varint_bool()?
+      | (_, let typ: TagKind) => reader.skip_field(typ)?
       end
     end
 
@@ -151,40 +149,36 @@ class FieldDescriptorProto is ProtoMessage
   var json_name: (String | None) = None
   var options: (FieldOptions | None) = None
   var proto3_optional: (Bool | None) = None
-  embed _reader: Reader = Reader
 
-  fun ref parse_from_stream(buffer: Reader) ? =>
-    while buffer.size() > 0 do
-      let t = FieldTypeDecoder.decode_field(buffer) ?
-      match t
+  fun ref parse_from_stream(reader: ProtoReader) ? =>
+    while reader.size() > 0 do
+      match reader.read_field_tag()?
       | (1, DelimitedField) =>
-        name = DelimitedDecoder.decode_string(buffer) ?
+        name = reader.read_string()?
       | (3, VarintField) =>
-        number = IntegerDecoder.decode_signed(buffer)?.i32()
+        number = reader.read_varint_32()?.i32()
       | (4, VarintField) =>
-        let n = IntegerDecoder.decode_signed(buffer) ?
-        label = FieldDescriptorProtoLabelBuilder.from_i32(n.i32())
+        label =
+          FieldDescriptorProtoLabelBuilder.from_i32(reader.read_varint_32()?.i32())
       | (5, VarintField) =>
-        let n = IntegerDecoder.decode_signed(buffer) ?
-        field_type = FieldDescriptorProtoTypeBuilder.from_i32(n.i32())
+        field_type =
+          FieldDescriptorProtoTypeBuilder.from_i32(reader.read_varint_32()?.i32())
       | (6, DelimitedField) =>
-        type_name = DelimitedDecoder.decode_string(buffer) ?
+        type_name = reader.read_string()?
       | (2, DelimitedField) =>
-        extendee = DelimitedDecoder.decode_string(buffer) ?
+        extendee = reader.read_string()?
       | (7, DelimitedField) =>
-        default_value = DelimitedDecoder.decode_string(buffer) ?
+        default_value = reader.read_string()?
       | (9, VarintField) =>
-        oneof_index = IntegerDecoder.decode_signed(buffer)?.i32()
+        oneof_index = reader.read_varint_32()?.i32()
       | (10, DelimitedField) =>
-        json_name = DelimitedDecoder.decode_string(buffer) ?
+        json_name = reader.read_string()?
       | (8, DelimitedField) =>
-        _reader.clear()
-        let size = DelimitedDecoder.raw_decode_len(buffer) ?
         let v: FieldOptions = FieldOptions
-        v.parse_from_stream(_reader .> append(buffer.block(size)?))?
+        v.parse_from_stream(reader.pop_embed()?)?
         options = v
       | (17, VarintField) =>
-        proto3_optional = BoolDecoder(buffer)?
-      | (_, let typ: TagKind) => SkipField(typ, buffer) ?
+        proto3_optional = reader.read_varint_bool()?
+      | (_, let typ: TagKind) => reader.skip_field(typ)?
       end
     end

@@ -1,5 +1,4 @@
 use "format"
-use "buffered"
 use "../../protobuf"
 
 actor Main
@@ -33,12 +32,12 @@ actor Main
 
   fun create_unpacked(bytes: Array[U8] val): TestUnpacked ? =>
     let p: TestUnpacked = TestUnpacked
-    p.parse_from_stream(Reader .> append(bytes)) ?
+    p.parse_from_stream(ProtoReader .> append(bytes)) ?
     p
 
   fun create_packed(bytes: Array[U8] val): TestPacked ? =>
     let p: TestPacked = TestPacked
-    p.parse_from_stream(Reader .> append(bytes)) ?
+    p.parse_from_stream(ProtoReader .> append(bytes))?
     p
 
   fun bytes_for_unpacked(up: TestUnpacked): Array[U8] val =>

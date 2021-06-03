@@ -3,8 +3,9 @@ use "buffered"
 trait ProtoMessage
   fun is_initialized(): Bool => true
   fun compute_size(): U32 => 0
-  fun ref parse_from_stream(buffer: Reader) ? => buffer.skip(buffer.size()) ?
-  fun write_to_stream(buffer: ProtoWriter) => None
+  fun write_to_stream(writer: ProtoWriter) => None
+  fun ref parse_from_stream(reader: ProtoReader) ? =>
+    reader.skip_raw(reader.size())?
 
 trait val ProtoEnumValue
   fun as_i32(): I32

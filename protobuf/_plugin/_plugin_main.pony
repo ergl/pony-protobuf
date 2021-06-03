@@ -1,9 +1,8 @@
 use ".."
-use "buffered"
 
 actor Main
   let _env: Env
-  let _reader: Reader = Reader
+  let _reader: ProtoReader = ProtoReader
   var _codegen_request: CodeGeneratorRequest = CodeGeneratorRequest
 
   new create(env: Env) =>
@@ -28,7 +27,6 @@ actor Main
   be recv_done() =>
     try
       _codegen_request.parse_from_stream(_reader)?
-      _reader.clear()
       let resp = CodeGen(_codegen_request)
       let writer = ProtoWriter
       resp.write_to_stream(writer)

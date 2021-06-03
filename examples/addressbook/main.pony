@@ -1,5 +1,4 @@
 use "format"
-use "buffered"
 use "../../protobuf"
 
 actor Main
@@ -34,7 +33,7 @@ actor Main
 
   fun create_addressbook(bytes: Array[U8] val): AddressBook ? =>
     let book: AddressBook = AddressBook
-    book.parse_from_stream(Reader .> append(bytes)) ?
+    book.parse_from_stream(ProtoReader .> append(bytes)) ?
     book
 
   fun bytes_for_book(book: AddressBook): Array[U8] val =>
