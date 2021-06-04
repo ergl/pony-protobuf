@@ -1,0 +1,9 @@
+syntax = "proto2";
+
+message TestPacked {
+  repeated int32 values = 1 [packed = true];
+}
+
+message TestUnpacked {
+  repeated int32 values = 1;
+}
