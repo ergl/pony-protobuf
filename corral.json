@@ -4,6 +4,10 @@
   ],
   "deps": [
     {
+      "locator": "github.com/ergl/pony-templates.git",
+      "version": "21.3.0-ergl"
+    },
+    {
       "locator": "github.com/ponylang/ponycheck.git",
       "version": "0.6.0"
     }
