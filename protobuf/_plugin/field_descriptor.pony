@@ -42,10 +42,10 @@ primitive FieldDescriptorProtoTypeTYPEUINT32 is ProtoEnumValue
 primitive FieldDescriptorProtoTypeTYPEENUM is ProtoEnumValue
   fun as_i32(): I32 => 14
 
-primitive FieldDescriptorProtoTypeTYPESIXED32 is ProtoEnumValue
+primitive FieldDescriptorProtoTypeTYPESFIXED32 is ProtoEnumValue
   fun as_i32(): I32 => 15
 
-primitive FieldDescriptorProtoTypeTYPESIXED64 is ProtoEnumValue
+primitive FieldDescriptorProtoTypeTYPESFIXED64 is ProtoEnumValue
   fun as_i32(): I32 => 16
 
 primitive FieldDescriptorProtoTypeTYPESINT32 is ProtoEnumValue
@@ -69,8 +69,8 @@ type FieldDescriptorProtoType is (
   | FieldDescriptorProtoTypeTYPEBYTES
   | FieldDescriptorProtoTypeTYPEUINT32
   | FieldDescriptorProtoTypeTYPEENUM
-  | FieldDescriptorProtoTypeTYPESIXED32
-  | FieldDescriptorProtoTypeTYPESIXED64
+  | FieldDescriptorProtoTypeTYPESFIXED32
+  | FieldDescriptorProtoTypeTYPESFIXED64
   | FieldDescriptorProtoTypeTYPESINT32
   | FieldDescriptorProtoTypeTYPESINT64
 )
@@ -92,8 +92,8 @@ primitive FieldDescriptorProtoTypeBuilder is ProtoEnum
     | 12 => FieldDescriptorProtoTypeTYPEBYTES
     | 13 => FieldDescriptorProtoTypeTYPEUINT32
     | 14 => FieldDescriptorProtoTypeTYPEENUM
-    | 15 => FieldDescriptorProtoTypeTYPESIXED32
-    | 16 => FieldDescriptorProtoTypeTYPESIXED64
+    | 15 => FieldDescriptorProtoTypeTYPESFIXED32
+    | 16 => FieldDescriptorProtoTypeTYPESFIXED64
     | 17 => FieldDescriptorProtoTypeTYPESINT32
     | 18 => FieldDescriptorProtoTypeTYPESINT64
     else

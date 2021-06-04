@@ -7,6 +7,7 @@ CLEAN_DEPENDENCIES_WITH := corral clean
 COMPILE_WITH := corral run -- ponyc
 
 BUILD_DIR ?= build/$(config)
+BUILD_GEN_DIR ?= $(BUILD_DIR)/auto_generated
 SRC_DIR ?= $(PACKAGE)
 PROTOC_PLUGIN_SRC ?= $(SRC_DIR)/_plugin
 EXAMPLES_DIR := examples
@@ -57,8 +58,11 @@ $(tests_binary): $(SOURCE_FILES) | $(BUILD_DIR)
 	$(PONYC) -o $(BUILD_DIR) $(SRC_DIR)
 
 plugin-test: $(plugin_binary)
-# 	protoc --pony_out=$(BUILD_DIR) --plugin=$(plugin_binary) $(EXAMPLES_DIR)/addressbook/addressbook.proto
-	protoc --pony_out=$(BUILD_DIR) --plugin=$(plugin_binary) proto2/google/protobuf/compiler/plugin.proto
+	@mkdir -p $(BUILD_GEN_DIR)
+	protoc --pony_out=$(BUILD_GEN_DIR) --plugin=$(plugin_binary) $(EXAMPLES_DIR)/addressbook/addressbook.proto
+	protoc --pony_out=$(BUILD_GEN_DIR) --plugin=$(plugin_binary) $(EXAMPLES_DIR)/packed/packed.proto
+	protoc --pony_out=$(BUILD_GEN_DIR) --plugin=$(plugin_binary) proto2/google/protobuf/compiler/plugin.proto
+	protoc --pony_out=$(BUILD_GEN_DIR) --plugin=$(plugin_binary) proto2/google/protobuf/descriptor.proto
 
 plugin: $(GEN_FILES) $(SOURCE_FILES) | $(BUILD_DIR)
 	@sed s/%%VERSION%%/$(VERSION)/ $(PROTOC_PLUGIN_SRC)/version.pony.in > $(PROTOC_PLUGIN_SRC)/version.pony

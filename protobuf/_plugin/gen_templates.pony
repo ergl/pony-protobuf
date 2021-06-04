@@ -5,6 +5,9 @@ class val GenTemplate
   let enum_field: Template
   let enum_alias: Template
   let enum_builder: Template
+  let message_structure: Template
+  let initialized_simple_clause: Template
+  let initialized_repeated_clause: Template
 
   new val create() ? =>
     header = Template.parse(
@@ -45,5 +48,56 @@ class val GenTemplate
             None
           end
 
+      """
+    )?
+
+    message_structure = Template.parse(
+      """
+      class {{name}} is ProtoMessage{{ifnotempty fields}}{{for field in fields}}
+        var {{field.name}}: {{field.f_type}} = {{field.default}}{{end}}{{end}}
+
+        {{ifnotempty initializer_clauses}}
+        fun is_initialized(): Bool =>
+          {{for clause in initializer_clauses}}
+          {{clause}}{{end}}
+          true{{end}}
+
+        {{ifnotempty field_size_clauses}}
+        fun compute_size(): U32 =>
+          var size: U32 = 0{{for clause in field_size_clauses}}
+          {{clause}}{{end}}
+          size{{end}}
+
+        {{ifnotempty read_clauses}}
+        fun ref parse_from_stream(reader: ProtoReader) ? =>
+          while reader.size() > 0
+            match reader.read_field_tag()?{{for clause in read_clauses}}
+            {{clause}}{{end}}
+            | (_, let typ: TagKind) => reader.skip_field(typ)?
+            end
+          end{{end}}
+
+        {{ifnotempty write_clauses}}
+        fun write_to_stream(writer: ProtoWriter) =>
+          {{for clause in write_clauses}}
+          {{clause}}{{end}}{{end}}
+      """
+    )?
+
+    initialized_simple_clause = Template.parse(
+      """
+      if {{name}} is None then
+        return false
+      end
+      """
+    )?
+
+    initialized_repeated_clause = Template.parse(
+      """
+      for v in {{name}}.values() do
+        if not v.is_initialized() then
+          return false
+        end
+      end
       """
     )?
