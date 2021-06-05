@@ -1,27 +1,70 @@
 use ".."
 use "collections"
 
+primitive Repeated
+primitive RepeatedPacked
+primitive Optional
+type FieldProtoLabel is (Repeated | RepeatedPacked | Optional)
+
+primitive PrimitiveType
+primitive EnumType
+primitive MessageType
+type FieldProtoType is (PrimitiveType | EnumType | MessageType)
+
 class val FieldMeta
-  let number: I32
-  let tag_kind: TagKind
-  let typ: String
-  let default: String
-  let is_packed: Bool
+  let number: String
+  let wire_type: TagKind
+  let uses_zigzag: Bool
+  // The Pony type at the field declaration
+  let pony_type_decl: String
+  // The Pony type at "read" / "write" time
+  let pony_type_usage: String
+  let default_assignment: String
+  let proto_type: FieldProtoType
+  let proto_label: FieldProtoLabel
 
   new val create(
-    number': I32,
-    tag_kind': TagKind,
-    typ': String,
-    default': String,
-    is_packed': Bool = false)
+    number': String,
+    wire_type': TagKind,
+    uses_zigzag': Bool,
+    pony_type_decl': String,
+    pony_type_usage': String,
+    default_assignment': String,
+    proto_type': FieldProtoType,
+    proto_label': FieldProtoLabel)
   =>
     number = number'
-    tag_kind = tag_kind'
-    typ = typ'
-    default = default'
-    is_packed = is_packed'
+    wire_type = wire_type'
+    uses_zigzag = uses_zigzag'
+    pony_type_decl = pony_type_decl'
+    pony_type_usage = pony_type_usage'
+    default_assignment = default_assignment'
+    proto_type = proto_type'
+    proto_label = proto_label'
 
 primitive CodeGenFields
+  fun _get_proto_label(field: FieldDescriptorProto): FieldProtoLabel =>
+    match field.label
+    | FieldDescriptorProtoLabelLABELREPEATED =>
+      try
+        let is_packed = (field.options as FieldOptions).packed as Bool
+        if is_packed then
+          return RepeatedPacked
+        end
+      end
+      return Repeated
+    else
+      Optional
+    end
+
+  fun _get_proto_type(field: FieldDescriptorProto): FieldProtoType =>
+    match field.field_type
+    | FieldDescriptorProtoTypeTYPEMESSAGE => MessageType
+    | FieldDescriptorProtoTypeTYPEENUM => EnumType
+    else
+      PrimitiveType
+    end
+
   fun apply(
     writer: CodeGenWriter ref,
     template_ctx: GenTemplate,
@@ -36,17 +79,27 @@ primitive CodeGenFields
       try
         let name = GenNames.message_field(field.name as String)
         let field_number = field.number as I32
-        (let field_tag, let field_type, let default) = _find_field_type(field,
+        let field_type_tuple = _find_field_type(field,
           field.label as FieldDescriptorProtoLabel, scope)?
-        let is_packed =
-          try (field.options as FieldOptions).packed as Bool else false end
+        (
+          let wire_type,
+          let needs_zigzag,
+          let pony_type_decl,
+          let pony_type_usage,
+          let default
+        ) = field_type_tuple
+        let proto_label = _get_proto_label(field)
+        let proto_type = _get_proto_type(field)
         field_meta(name) =
           FieldMeta(where
-            number' = field_number,
-            tag_kind' = field_tag,
-            typ' = field_type,
-            default' = default,
-            is_packed' = is_packed
+            number' = field_number.string(),
+            wire_type' = wire_type,
+            uses_zigzag' = needs_zigzag,
+            pony_type_decl' = pony_type_decl,
+            pony_type_usage' = pony_type_usage,
+            default_assignment' = default,
+            proto_type' = proto_type,
+            proto_label' = proto_label
           )
       end // TODO(borja): What do we do about anonymous messages?
     end
@@ -56,7 +109,7 @@ primitive CodeGenFields
     field: FieldDescriptorProto,
     field_label: FieldDescriptorProtoLabel,
     scope: SymbolScope)
-    : (TagKind, String, String)
+    : (TagKind, Bool, String, String, String)
     ?
   =>
 
@@ -68,15 +121,18 @@ primitive CodeGenFields
     match field.field_type
     | let field_type: FieldDescriptorProtoType =>
       match GenTypes.typeof(field_type, field_label, default_value_str)
-      | let field_tag: TagKind =>
+      | (let wire_type: TagKind, let needs_zigzag: Bool) =>
         // We couldn't decipher the type, it's possible that it's a
         // message or enum type.
+        let pony_type = GenTypes.label_of(
+          scope(field.type_name as String) as String,
+          field_label
+        )
         (
-          field_tag,
-          GenTypes.label_of(
-            scope(field.type_name as String) as String,
-            field_label
-          ),
+          wire_type,
+          needs_zigzag,
+          pony_type._1,
+          pony_type._2,
           _find_default(
             scope,
             field.type_name as String,
@@ -86,22 +142,33 @@ primitive CodeGenFields
         )
 
       | (
-          let field_tag: TagKind,
-          let type_name: String,
+          let wire_type: TagKind,
+          let needs_zigzag: Bool,
+          let pony_type_decl: String,
+          let pony_type_usage: String,
           let default_value: String
         ) =>
         // Everything went OK
-        (field_tag, type_name, default_value)
+        (
+          wire_type,
+          needs_zigzag,
+          pony_type_decl,
+          pony_type_usage,
+          default_value
+        )
       end
     else
       // Allowed, but type_name better be set.
       // We assume that this is a message type
+      let pony_type = GenTypes.label_of(
+        scope(field.type_name as String) as String,
+        field_label
+      )
       (
         DelimitedField,
-        GenTypes.label_of(
-          scope(field.type_name as String) as String,
-          field_label
-        ),
+        false, // This is either message or enum, so no zigzag
+        pony_type._1,
+        pony_type._2,
         _find_default(
           scope,
           field.type_name as String,

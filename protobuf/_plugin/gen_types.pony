@@ -1,34 +1,37 @@
 use ".."
 
 primitive GenTypes
-  fun _proto_type_to_tag_kind(typ: FieldDescriptorProtoType): TagKind =>
+  fun _proto_type_to_tag_kind(
+    typ: FieldDescriptorProtoType)
+    : (TagKind, Bool)
+  =>
     match typ
-    | FieldDescriptorProtoTypeTYPEDOUBLE => Fixed64Field
-    | FieldDescriptorProtoTypeTYPEFLOAT => Fixed32Field
-    | FieldDescriptorProtoTypeTYPEINT64 => VarintField
-    | FieldDescriptorProtoTypeTYPEUINT64 => VarintField
-    | FieldDescriptorProtoTypeTYPEINT32 => VarintField
-    | FieldDescriptorProtoTypeTYPEFIXED32 => Fixed32Field
-    | FieldDescriptorProtoTypeTYPEFIXED64 => Fixed64Field
-    | FieldDescriptorProtoTypeTYPEBOOL => VarintField
-    | FieldDescriptorProtoTypeTYPESTRING => DelimitedField
-    | FieldDescriptorProtoTypeTYPEMESSAGE => DelimitedField
-    | FieldDescriptorProtoTypeTYPEBYTES => DelimitedField
-    | FieldDescriptorProtoTypeTYPEUINT32 => VarintField
-    | FieldDescriptorProtoTypeTYPEENUM => VarintField
-    | FieldDescriptorProtoTypeTYPESFIXED32 => Fixed32Field
-    | FieldDescriptorProtoTypeTYPESFIXED64 => Fixed64Field
-    | FieldDescriptorProtoTypeTYPESINT32 => VarintField
-    | FieldDescriptorProtoTypeTYPESINT64 => VarintField
+    | FieldDescriptorProtoTypeTYPEDOUBLE => (Fixed64Field, false)
+    | FieldDescriptorProtoTypeTYPEFLOAT => (Fixed32Field, false)
+    | FieldDescriptorProtoTypeTYPEINT64 => (VarintField, false)
+    | FieldDescriptorProtoTypeTYPEUINT64 => (VarintField, false)
+    | FieldDescriptorProtoTypeTYPEINT32 => (VarintField, false)
+    | FieldDescriptorProtoTypeTYPEFIXED32 => (Fixed32Field, false)
+    | FieldDescriptorProtoTypeTYPEFIXED64 => (Fixed64Field, false)
+    | FieldDescriptorProtoTypeTYPEBOOL => (VarintField, false)
+    | FieldDescriptorProtoTypeTYPESTRING => (DelimitedField, false)
+    | FieldDescriptorProtoTypeTYPEMESSAGE => (DelimitedField, false)
+    | FieldDescriptorProtoTypeTYPEBYTES => (DelimitedField, false)
+    | FieldDescriptorProtoTypeTYPEUINT32 => (VarintField, false)
+    | FieldDescriptorProtoTypeTYPEENUM => (VarintField, false)
+    | FieldDescriptorProtoTypeTYPESFIXED32 => (Fixed32Field, false)
+    | FieldDescriptorProtoTypeTYPESFIXED64 => (Fixed64Field, false)
+    | FieldDescriptorProtoTypeTYPESINT32 => (VarintField, true)
+    | FieldDescriptorProtoTypeTYPESINT64 => (VarintField, true)
     else
       // Group type?
-      DelimitedField
+      (DelimitedField, false)
     end
 
   fun _proto_type_to_pony_type(
     typ: FieldDescriptorProtoType,
     label: FieldDescriptorProtoLabel)
-    : (String | None)
+    : ((String, String) | None)
   =>
     match typ
     | FieldDescriptorProtoTypeTYPEDOUBLE => label_of("F64", label)
@@ -77,35 +80,46 @@ primitive GenTypes
     typ: FieldDescriptorProtoType,
     label: FieldDescriptorProtoLabel,
     typ_default_value_str: String)
-    : (TagKind | (TagKind, String, String))
+    : ((TagKind, Bool) | (TagKind, Bool, String, String, String))
   =>
     """
-    Returns the tag kind and optionally, the type name and default
-    value of a proto type. If only the tag is returned, caller needs
-    to check SymbolScope.
+    Returns the tag kind if the type needs zigzag encoding. Optionally, it also
+    returns the type of the field, and the type of indicated in the proto file.
+    That is, for optional fields,  the type is "( Type | None )", and the
+    other type is "Type". For repeated types, the types are "Array[Type]" and
+    "Type", respectively.
+
+    If only the tag is returned, caller needs to check SymbolScope.
     """
 
-    let tag_kind = _proto_type_to_tag_kind(typ)
+    (let tag_kind, let uses_zigzag) = _proto_type_to_tag_kind(typ)
     match _proto_type_to_pony_type(typ, label)
-    | None => tag_kind
-    | let str: String =>
+    | None => (tag_kind, uses_zigzag)
+    | (let pony_type: String, let pony_inner_type: String) =>
       (
         tag_kind,
-        str,
-        _default_for_type_label(str, typ_default_value_str, typ)
+        uses_zigzag,
+        pony_type,
+        pony_inner_type,
+        _default_for_type_label(pony_type, typ_default_value_str, typ)
       )
     end
 
-  fun label_of(typ: String, label: FieldDescriptorProtoLabel): String =>
+  fun label_of(
+    typ: String,
+    label: FieldDescriptorProtoLabel)
+    : (String, String)
+  =>
     match label
-    | FieldDescriptorProtoLabelLABELREPEATED => "Array[" + typ + "]"
+    | FieldDescriptorProtoLabelLABELREPEATED =>
+      ("Array[" + typ + "]", typ)
     else
       // We also wrap required fields in None, to be able to distinguish
       // uninitalized messages from optionals
       // 
       // Clients are encouraged to check "is_initialized" before operating
       // on the message class.
-      "(" + typ + " | None)"
+      ("(" + typ + " | None)", typ)
     end
 
   fun default_value(

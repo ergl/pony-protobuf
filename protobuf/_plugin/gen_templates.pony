@@ -6,17 +6,19 @@ class val GenTemplate
   let enum_alias: Template
   let enum_builder: Template
   let message_structure: Template
+  let initialized_simple_clause: Template
+  let initialized_repeated_clause: Template
   let write_bytes: Template
   let write_enum: Template
   let write_varint: Template
   let write_varint_zigzag: Template
-  let write_repeated_varint: Template
-  let write_repeated_varint_zigzag: Template
-  let write_packed_varint: Template
+  let write_fixed_32: Template
+  let write_fixed_64: Template
   let write_inner_message: Template
-  let write_repeated_inner_message: Template
-  let initialized_simple_clause: Template
-  let initialized_repeated_clause: Template
+  let write_repeated_non_message_type: Template
+  let write_repeated_inner_message_clause: Template
+  let write_packed_varint: Template
+  let write_optional_clause: Template
 
   new val create() ? =>
     header = Template.parse(
@@ -63,7 +65,7 @@ class val GenTemplate
     message_structure = Template.parse(
       """
       class {{name}} is ProtoMessage{{ifnotempty fields}}{{for field in fields}}
-        var {{field.name}}: {{field.f_type}} = {{field.default}}{{end}}{{end}}
+        var {{field.name}}: {{field.pony_type}} = {{field.default}}{{end}}{{end}}
 
         {{ifnotempty initializer_clauses}}
         fun is_initialized(): Bool =>
@@ -87,86 +89,9 @@ class val GenTemplate
           end{{end}}
 
         {{ifnotempty write_clauses}}
-        fun write_to_stream(writer: ProtoWriter) =>
-          {{for clause in write_clauses}}
+        fun write_to_stream(writer: ProtoWriter) =>{{for clause in write_clauses}}
           {{clause}}{{end}}{{end}}
-      """
-    )?
 
-    write_bytes = Template.parse(
-      """
-      writer.write_tag({{number}}, DelimitedField)
-      writer.write_bytes({{field}})
-      """
-    )?
-
-    write_enum = Template.parse(
-      """
-      writer.write_tag({{number}}, VarintField)
-      writer.write_enum({{field}})
-      """
-    )?
-
-    write_varint = Template.parse(
-      """
-      writer.write_tag({{number}}, VarintField)
-      writer.write_varint[{{type}}]({{field}})
-      """
-    )?
-
-    write_varint_zigzag = Template.parse(
-      """
-      writer.write_tag({{number}}, VarintField)
-      writer.write_varint_zigzag[{{type}}]({{field}})
-      """
-    )?
-
-    write_repeated_varint = Template.parse(
-      """
-      for v in {{field}}.values() do
-        writer.write_tag({{number}}, VarintField)
-        writer.write_varint[{{type}}](v)
-      end
-      """
-    )?
-
-    write_repeated_varint_zigzag = Template.parse(
-      """
-      for v in {{field}}.values() do
-        writer.write_tag({{number}}, VarintField)
-        writer.write_varint_zigzag[{{type}}](v)
-      end
-      """
-    )?
-
-    write_packed_varint = Template.parse(
-      """
-      if {{field}}.size() != 0 then
-        var {{field}}_size: U32 = 0
-        for v in {{field}}.values() do
-          {{field}}_size = {{field}}_size + FieldSize.raw_varint(v.u64())
-        end
-        writer.write_tag({{number}}, DelimitedField)
-        writer.write_packed_varint[{{type}}]({{field}}, {{field}}_size)
-      end
-      """
-    )?
-
-    write_inner_message = Template.parse(
-      """
-      writer.write_tag({{number}}, DelimitedField)
-      writer.write_varint[U32]({{field}}.compute_size())
-      {{field}}.write_to_stream(writer)
-      """
-    )?
-
-    write_repeated_inner_message = Template.parse(
-      """
-      for v in {{field}}.values() do
-        writer.write_tag({{number}}, DelimitedField)
-        writer.write_varint[U32](v.compute_size())
-        v.write_to_stream(writer)
-      end
       """
     )?
 
@@ -186,4 +111,92 @@ class val GenTemplate
         end
       end
       """
+    )?
+
+    write_optional_clause = Template.parse(
+      """
+      match {{field}}
+          | None => None
+          | let {{field}}': {{if is_message}}this->{{end}}{{type}} =>
+            {{body}}
+          end"""
+    )?
+
+    write_bytes = Template.parse(
+      """
+      writer.write_tag({{number}}, DelimitedField)
+            writer.write_bytes({{field}})"""
+    )?
+
+    write_enum = Template.parse(
+      """
+      writer.write_tag({{number}}, VarintField)
+            writer.write_enum({{field}})"""
+    )?
+
+    write_varint = Template.parse(
+      """
+      writer.write_tag({{number}}, VarintField)
+            writer.write_varint[{{type}}]({{field}})"""
+    )?
+
+    write_varint_zigzag = Template.parse(
+      """
+      writer.write_tag({{number}}, VarintField)
+            writer.write_varint_zigzag[{{type}}]({{field}})"""
+    )?
+
+    write_fixed_32 = Template.parse(
+      """
+      writer.write_tag({{number}}, Fixed32Field)
+            writer.write_fixed_32[{{type}}]({{field}})"""
+    )?
+
+    write_fixed_64 = Template.parse(
+      """
+      writer.write_tag({{number}}, Fixed32Field)
+            writer.write_fixed_64[{{type}}]({{field}})"""
+    )?
+
+    write_inner_message = Template.parse(
+      """
+      writer.write_tag({{number}}, DelimitedField)
+            writer.write_varint[U32]({{field}}.compute_size())
+            {{field}}.write_to_stream(writer)"""
+    )?
+
+    write_repeated_non_message_type = Template.parse(
+      """
+      for v in {{field}}.values() do
+            writer.write_tag({{number}}, {{tag_kind}})
+            writer.{{method}}{{if type}}[{{type}}]{{end}}(v)
+          end"""
+    )?
+
+    // TODO(borja): This is rendered with wonky indentation
+    // Perhaps due to it being serialized to string before putting it
+    // into another template?
+    write_packed_varint = Template.parse(
+      """
+      if {{field}}.size() != 0 then
+            var {{field}}_size: U32 = 0
+            for v in {{field}}.values() do
+              {{field}}_size = {{field}}_size + FieldSize.raw_varint(v.u64())
+            end
+            writer.write_tag({{number}}, DelimitedField)
+            writer.write_packed_varint[{{type}}]({{field}}, {{field}}_size)
+          end"""
+    )?
+
+    // TODO(borja): This is rendered with wonky indentation
+    // Perhaps due to it being serialized to string before putting it
+    // into another template?
+    write_repeated_inner_message_clause = Template.parse(
+      """
+      for v in {{field}}.values() do
+            writer.write_tag({{number}}, DelimitedField)
+            // TODO: Don't recompute size here, it's wasteful
+            writer.write_varint[U32](v.compute_size())
+            v.write_to_stream(writer)
+          end"""
     )?
