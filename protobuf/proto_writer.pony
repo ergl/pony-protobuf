@@ -83,9 +83,19 @@ class ProtoWriter
       _writer.f64_le(n)
     end
 
-  fun ref write_bytes(data: ByteSeq) =>
+  fun ref write_bytes(data: (String | Array[U8] box)) =>
     _write_raw_varint(data.size().u64())
-    _writer.write(data)
+    let data_val = match data
+    | let string: String => string
+    | let array: Array[U8] box =>
+      // FIXME(borja): Try to avoid copying here
+      let tmp = recover Array[U8].create(array.size()) end
+      for elt in array.values() do
+        tmp.push(elt)
+      end
+      consume val tmp
+    end
+    _writer.write(data_val)
 
   fun ref done(): Array[ByteSeq] iso^ =>
     _writer.done()
