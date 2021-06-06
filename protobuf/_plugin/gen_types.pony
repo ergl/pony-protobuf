@@ -57,13 +57,21 @@ primitive GenTypes
     end
 
   fun _default_for_type_label(
-    typ_str: String,
+    pony_type_decl: String,
     default: String,
-    typ_info: FieldDescriptorProtoType)
+    typ_info: FieldDescriptorProtoType,
+    label: FieldDescriptorProtoLabel)
     : String
   =>
     if default == "None" then
-      typ_str
+      // Here, we should distinguish between repeated values and optional
+      // If it's optional, return "None". If repeated, use
+      // pony_type_decl
+      match label
+      | FieldDescriptorProtoLabelLABELREPEATED => pony_type_decl
+      else
+        "None"
+      end
     else
       match typ_info
       | FieldDescriptorProtoTypeTYPEBYTES =>
@@ -101,7 +109,9 @@ primitive GenTypes
         uses_zigzag,
         pony_type,
         pony_inner_type,
-        _default_for_type_label(pony_type, typ_default_value_str, typ)
+        _default_for_type_label(
+          pony_type, typ_default_value_str, typ, label
+        )
       )
     end
 
