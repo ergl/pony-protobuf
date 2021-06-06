@@ -85,6 +85,11 @@ primitive CodeGen
         let normalized_file = GenNames.proto_file(descr_name)
         // Perform a scope pass on all files (incl. dependencies)
         let local_scope = SymbolScope(package, global_scope)
+        // TODO(borja): Figure out package situation
+        // Although protoc gives us fully qualified names (i.e.,
+        // .google.protobuf.FileDescriptorProto), we still need
+        // to think about how to expose packages to Pony.
+        // Do we build folder hierarchies that mimick the proto packages?
         CodeGenScopePass(descr, local_scope)
         if file_name == normalized_file then
           // This isn't a dependency, we reached codegen
