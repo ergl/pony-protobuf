@@ -14,18 +14,14 @@ primitive CodeGenMessages
       return
     end
 
-    // TODO(borja): The messages are ordered arbitrarily
-    // We have to do one pass for scoping, then another
-    // to generate them, otherwise we might miss something.
     for message in messages.values() do
       try
         let proto_name = message.name as String
         let name = GenNames.proto_enum(prefix + proto_name)
-        outer_scope(proto_name) = name
 
         let local_scope = SymbolScope(proto_name, outer_scope)
-        CodeGenEnums(writer, template_ctx, local_scope, message.enum_type, name)
-        CodeGenMessages(writer, template_ctx, local_scope, message.nested_type, 
+        CodeGenEnums(writer, template_ctx, message.enum_type, name)
+        CodeGenMessages(writer, template_ctx, local_scope, message.nested_type,
           name, recursion_level + 1)
         let field_meta =
           CodeGenFields(writer, template_ctx, local_scope, message.field)

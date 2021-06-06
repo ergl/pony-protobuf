@@ -69,9 +69,8 @@ primitive CodeGen
     let file_name = GenNames.proto_file(file_path)
     response_file.name = file_name + ".pony"
 
-    // Although we should only generate code for `file_path`, we should
-    // go through the dependencies to construct the names for the dependencies,
-    // even if we don't generate code for them
+    // Although we should only generate code for `file_path`, we have
+    // to inspect the dependencies to resolve any name references.
     var offset: USize = 0
     let global_scope = SymbolScope
     while proto_descriptors.size() > 0 do
@@ -83,16 +82,19 @@ primitive CodeGen
         | let s': String => s'
         | None => ""
         end
-        if (file_name == GenNames.proto_file(descr_name)) then
+        let normalized_file = GenNames.proto_file(descr_name)
+        // Perform a scope pass on all files (incl. dependencies)
+        let local_scope = SymbolScope(package, global_scope)
+        CodeGenScopePass(descr, local_scope)
+        if file_name == normalized_file then
+          // This isn't a dependency, we reached codegen
           match descr.syntax
           | "proto3" =>
             return "pony-protobuf only supports proto2 files"
           else
-            let local_scope = SymbolScope(package, global_scope)
             response_file.content =
               _codegen_proto_descriptor(protoc_version, template_ctx,
                 local_scope, descr)
-            // We generated what we want, bail out
             break
           end
         end
@@ -116,7 +118,6 @@ primitive CodeGen
     CodeGenEnums(
       writer,
       template_ctx,
-      scope,
       descriptor.enum_type
     )
     CodeGenMessages(
