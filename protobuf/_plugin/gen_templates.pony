@@ -82,18 +82,12 @@ class val GenTemplate
       class {{name}} is ProtoMessage{{ifnotempty fields}}{{for field in fields}}
         var {{field.name}}: {{field.pony_type}} = {{field.default}}{{end}}{{end}}
 
-        {{ifnotempty initializer_clauses}}
-        fun is_initialized(): Bool =>{{for clause in initializer_clauses}}
-          {{clause}}{{end}}
-          true{{end}}
-
         {{ifnotempty field_size_clauses}}fun compute_size(): U32 =>
           var size: U32 = 0{{for clause in field_size_clauses}}
           {{clause}}{{end}}
           size{{end}}
 
-        {{ifnotempty read_clauses}}
-        fun ref parse_from_stream(reader: ProtoReader) ? =>
+        {{ifnotempty read_clauses}}fun ref parse_from_stream(reader: ProtoReader) ? =>
           while reader.size() > 0
             match reader.read_field_tag()?{{for clause in read_clauses}}
             {{clause}}{{end}}
@@ -101,9 +95,12 @@ class val GenTemplate
             end
           end{{end}}
 
-        {{ifnotempty write_clauses}}
-        fun write_to_stream(writer: ProtoWriter) =>{{for clause in write_clauses}}
+        {{ifnotempty write_clauses}}fun write_to_stream(writer: ProtoWriter) =>{{for clause in write_clauses}}
           {{clause}}{{end}}{{end}}
+
+        {{ifnotempty initializer_clauses}}fun is_initialized(): Bool =>{{for clause in initializer_clauses}}
+          {{clause}}{{end}}
+          true{{end}}
 
       """
     )?
