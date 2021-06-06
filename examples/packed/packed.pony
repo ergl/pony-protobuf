@@ -5,9 +5,7 @@ class TestPacked is ProtoMessage
 
   fun compute_size(): U32 =>
     var size: U32 = 0
-    for v in values.values() do
-      size = size + FieldSize.packed_varint[I32](1, values)
-    end
+    size = size + FieldSize.packed_varint[I32](1, values)
     size
 
   fun ref parse_from_stream(reader: ProtoReader) ? =>

@@ -17,6 +17,11 @@ class val GenTemplate
   let initialized_required_message_clause: Template
   let initialized_repeated_clause: Template
 
+  // compute_size
+  let size_optional_clause: Template
+  let size_repeated_clause: Template
+  let size_packed_clause: Template
+
   // write_to_stream
   let write_bytes: Template
   let write_enum: Template
@@ -82,8 +87,7 @@ class val GenTemplate
           {{clause}}{{end}}
           true{{end}}
 
-        {{ifnotempty field_size_clauses}}
-        fun compute_size(): U32 =>
+        {{ifnotempty field_size_clauses}}fun compute_size(): U32 =>
           var size: U32 = 0{{for clause in field_size_clauses}}
           {{clause}}{{end}}
           size{{end}}
@@ -142,11 +146,33 @@ class val GenTemplate
           end"""
     )?
 
+    size_optional_clause = Template.parse(
+      """
+      match {{name}}
+          | None => None
+          | let {{name}}': {{if needs_viewpoint}}this->{{end}}{{type}} =>
+            size = size + FieldSize.{{method}}{{if method_type}}[{{method_type}}]{{end}}({{number}}{{if needs_name_arg}}, {{name}}'{{end}})
+          end"""
+    )?
+
+    size_repeated_clause = Template.parse(
+      """
+      for v in {{name}}.values() do
+            size = size + FieldSize.{{method}}{{if method_type}}[{{method_type}}]{{end}}({{number}}, v)
+          end"""
+    )?
+
+    size_packed_clause = Template.parse(
+      """
+      size = size + FieldSize.{{method}}{{if method_type}}[{{method_type}}]{{end}}({{number}}, {{name}})
+      """
+    )?
+
     write_optional_clause = Template.parse(
       """
       match {{field}}
           | None => None
-          | let {{field}}': {{if is_message}}this->{{end}}{{type}} =>
+          | let {{field}}': {{if needs_viewpoint}}this->{{end}}{{type}} =>
             {{body}}
           end"""
     )?

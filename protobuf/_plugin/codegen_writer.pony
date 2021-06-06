@@ -162,8 +162,13 @@ class CodeGenWriter
     let tpl = TemplateValues
     tpl("field") = field_name
     tpl("type") = field_meta.pony_type_usage
-    if field_meta.proto_type is MessageType then
-      tpl("is_message") = ""
+    if
+      (field_meta.proto_type is MessageType) or
+      (field_meta.proto_label is Repeated) or
+      ((field_meta.wire_type is DelimitedField) and
+       (field_meta.pony_type_usage == "Array[U8]"))
+    then
+      tpl("needs_viewpoint") = ""
     end
     let inner_tpl = TemplateValues
     // Use primed variable inside the optional clause
@@ -281,6 +286,118 @@ class CodeGenWriter
     end
     TemplateValue(clauses)
 
+  fun _fill_size_clause_packed(
+    field_name: String,
+    field_meta: FieldMeta,
+    template_ctx: GenTemplate)
+    : String
+    ?
+  =>
+    let tpl = TemplateValues
+    tpl("name") = field_name
+    tpl("number") = field_meta.number
+    match field_meta.proto_type
+    | EnumType =>
+      // FIXME(borja): Don't know how to handle these yet
+      error
+    | MessageType => error // Can't have packed messages
+    | PrimitiveType =>
+      match field_meta.wire_type
+      | VarintField =>
+        tpl("method_type") = field_meta.pony_type_usage
+        tpl("method") =
+          if field_meta.uses_zigzag then
+            "packed_varint_zigzag"
+          else
+            "packed_varint"
+          end
+      else
+        // FIXME(Borja): Handle more packed values
+        error
+      end
+    end
+    template_ctx.size_packed_clause.render(tpl)?
+
+  fun _fill_size_clause_default(
+    field_name: String,
+    field_meta: FieldMeta,
+    template_ctx: GenTemplate)
+    : String
+    ?
+  =>
+    let tpl = TemplateValues
+    tpl("name") = field_name
+    tpl("number") = field_meta.number
+    tpl("type") = field_meta.pony_type_usage
+    match field_meta.proto_type
+    | MessageType =>
+      tpl("needs_viewpoint") = ""
+      tpl("method") = "inner_message"
+      tpl("needs_name_arg") = ""
+    | EnumType =>
+      tpl("method") = "enum"
+      tpl("needs_name_arg") = ""
+    | PrimitiveType =>
+      match field_meta.wire_type
+      | Fixed32Field => tpl("method") = "fixed32"
+      | Fixed64Field => tpl("method") = "fixed64"
+      | DelimitedField =>
+        tpl("method") = "delimited"
+        // TODO(borja): This is a hack, find a better way
+        if field_meta.pony_type_usage == "Array[U8]" then
+          tpl("needs_viewpoint") = ""
+        end
+        tpl("needs_name_arg") = ""
+      | VarintField =>
+        tpl("method_type") = field_meta.pony_type_usage
+        tpl("method") =
+          if field_meta.uses_zigzag then
+            "varint_zigzag"
+          else
+            "varint"
+          end
+        tpl("needs_name_arg") = ""
+      end
+    end
+    match field_meta.proto_label
+    | Repeated =>
+      tpl("needs_viewpoint") = ""
+      template_ctx.size_repeated_clause.render(tpl)?
+    else
+      // Not packed, handled elsewhere
+      template_ctx.size_optional_clause.render(tpl)?
+    end
+
+  fun _fill_size_clause(
+    field_name: String,
+    field_meta: FieldMeta,
+    template_ctx: GenTemplate)
+    : String
+    ?
+  =>
+    match field_meta.proto_label
+    | RepeatedPacked =>
+      _fill_size_clause_packed(field_name, field_meta, template_ctx)?
+    else
+      // We handle the rest the same, only difference is the template
+      _fill_size_clause_default(field_name, field_meta, template_ctx)?
+    end
+
+  fun _fill_size_clauses(
+    field_info: Map[String, FieldMeta] box,
+    template_ctx: GenTemplate)
+    : TemplateValue
+  =>
+    let clauses = Array[TemplateValue]
+    for (name, meta) in field_info.pairs() do
+      try
+        clauses.push(
+          TemplateValue(_fill_size_clause(name, meta, template_ctx)?)
+        )
+      end
+    end
+    TemplateValue(clauses)
+
   fun ref write_message(
     message_name: String,
     field_info: Map[String, FieldMeta] box,
@@ -291,8 +408,8 @@ class CodeGenWriter
     message_structure("fields") = _fill_fields(field_info, template_ctx)
     message_structure("initializer_clauses") = _fill_init_clauses(field_info,
       template_ctx)
-    message_structure("field_size_clauses") =
-      TemplateValue(Array[TemplateValue])
+    message_structure("field_size_clauses") = _fill_size_clauses(field_info,
+      template_ctx)
     message_structure("read_clauses") =
       TemplateValue(Array[TemplateValue])
     message_structure("write_clauses") = _fill_write_clauses(field_info,

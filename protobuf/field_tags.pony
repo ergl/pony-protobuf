@@ -68,7 +68,7 @@ primitive FieldSize
 
   fun fixed64(field: U64): U32 => _tag_size(field) + 8
 
-  fun delimited(field: U64, bytes: ByteSeq): U32 =>
+  fun delimited(field: U64, bytes: (String box | Array[U8] box)): U32 =>
     _tag_size(field) + raw_varint(bytes.size().u64()) + bytes.size().u32()
 
   fun inner_message(field: U64, n: ProtoMessage box): U32 =>
