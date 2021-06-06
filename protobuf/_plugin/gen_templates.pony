@@ -190,6 +190,7 @@ class val GenTemplate
     write_inner_message = Template.parse(
       """
       writer.write_tag({{number}}, DelimitedField)
+            // TODO: Don't recompute size here, it's wasteful
             writer.write_varint[U32]({{field}}.compute_size())
             {{field}}.write_to_stream(writer)"""
     )?
