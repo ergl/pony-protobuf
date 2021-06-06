@@ -2,12 +2,22 @@ use "templates"
 
 class val GenTemplate
   let header: Template
+
+  // Enums
   let enum_field: Template
   let enum_alias: Template
   let enum_builder: Template
+
+  // Message
   let message_structure: Template
-  let initialized_simple_clause: Template
+
+  // is_initialized
+  let initialized_primitive_clause: Template
+  let initialized_message_clause: Template
+  let initialized_required_message_clause: Template
   let initialized_repeated_clause: Template
+
+  // write_to_stream
   let write_bytes: Template
   let write_enum: Template
   let write_varint: Template
@@ -68,8 +78,7 @@ class val GenTemplate
         var {{field.name}}: {{field.pony_type}} = {{field.default}}{{end}}{{end}}
 
         {{ifnotempty initializer_clauses}}
-        fun is_initialized(): Bool =>
-          {{for clause in initializer_clauses}}
+        fun is_initialized(): Bool =>{{for clause in initializer_clauses}}
           {{clause}}{{end}}
           true{{end}}
 
@@ -95,22 +104,42 @@ class val GenTemplate
       """
     )?
 
-    initialized_simple_clause = Template.parse(
+    initialized_primitive_clause = Template.parse(
       """
       if {{name}} is None then
-        return false
-      end
+            return false
+          end"""
+    )?
+
+    initialized_message_clause = Template.parse(
       """
+      match {{name}}
+          | None => None
+          | let {{name}}': this->{{type}} =>
+            if not ({{name}}'.is_initialized()) then
+              return false
+            end
+          end"""
+    )?
+
+    initialized_required_message_clause = Template.parse(
+      """
+      match {{name}}
+          | None => return false
+          | let {{name}}': this->{{type}} =>
+            if not ({{name}}'.is_initialized()) then
+              return falsse
+            end
+          end"""
     )?
 
     initialized_repeated_clause = Template.parse(
       """
       for v in {{name}}.values() do
-        if not v.is_initialized() then
-          return false
-        end
-      end
-      """
+            if not v.is_initialized() then
+              return false
+            end
+          end"""
     )?
 
     write_optional_clause = Template.parse(

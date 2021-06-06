@@ -4,7 +4,8 @@ use "collections"
 primitive Repeated
 primitive RepeatedPacked
 primitive Optional
-type FieldProtoLabel is (Repeated | RepeatedPacked | Optional)
+primitive Required
+type FieldProtoLabel is (Repeated | RepeatedPacked | Optional | Required)
 
 primitive PrimitiveType
 primitive EnumType
@@ -45,6 +46,7 @@ class val FieldMeta
 primitive CodeGenFields
   fun _get_proto_label(field: FieldDescriptorProto): FieldProtoLabel =>
     match field.label
+    | FieldDescriptorProtoLabelLABELREQUIRED => Required
     | FieldDescriptorProtoLabelLABELREPEATED =>
       try
         let is_packed = (field.options as FieldOptions).packed as Bool

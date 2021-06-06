@@ -201,7 +201,7 @@ class CodeGenWriter
       _fill_write_clause_packed(field_name, field_meta, template_ctx)?
     | Repeated =>
       _fill_write_clause_repeated(field_name, field_meta, template_ctx)?
-    | Optional =>
+    else
       _fill_write_clause_optional(field_name, field_meta, template_ctx)?
     end
 
@@ -222,6 +222,65 @@ class CodeGenWriter
     end
     TemplateValue(clauses)
 
+  fun _fill_init_clause(
+    field_name: String,
+    field_meta: FieldMeta,
+    template_ctx: GenTemplate)
+    : String
+    ?
+  =>
+    let tpl = TemplateValues
+    tpl("name") = field_name
+    match field_meta.proto_label
+    | Required =>
+      match field_meta.proto_type
+      | MessageType =>
+        tpl("type") = field_meta.pony_type_usage
+        template_ctx.initialized_required_message_clause.render(tpl)?
+      else
+        // Both enums and primitive types go through the same steps
+        template_ctx.initialized_primitive_clause.render(tpl)?
+      end
+
+    | Optional =>
+      match field_meta.proto_type
+      | MessageType =>
+        // Although the field is optional, the underlying message
+        // might need checking
+        tpl("type") = field_meta.pony_type_usage
+        template_ctx.initialized_message_clause.render(tpl)?
+      else
+        error
+      end
+
+    | Repeated =>
+      match field_meta.proto_type
+      | MessageType =>
+        template_ctx.initialized_repeated_clause.render(tpl)?
+      else
+        // Rest of repeated types are primitives
+        error
+      end
+    else
+      // Can't pack message types
+      error
+    end
+
+  fun _fill_init_clauses(
+    field_info: Map[String, FieldMeta] box,
+    template_ctx: GenTemplate)
+    : TemplateValue
+  =>
+    let clauses = Array[TemplateValue]
+    for (name, meta) in field_info.pairs() do
+      try
+        clauses.push(
+          TemplateValue(_fill_init_clause(name, meta, template_ctx)?)
+        )
+      end
+    end
+    TemplateValue(clauses)
+
   fun ref write_message(
     message_name: String,
     field_info: Map[String, FieldMeta] box,
@@ -230,8 +289,8 @@ class CodeGenWriter
     let message_structure = TemplateValues
     message_structure("name") = message_name
     message_structure("fields") = _fill_fields(field_info, template_ctx)
-    message_structure("initializer_clauses") =
-      TemplateValue(Array[TemplateValue])
+    message_structure("initializer_clauses") = _fill_init_clauses(field_info,
+      template_ctx)
     message_structure("field_size_clauses") =
       TemplateValue(Array[TemplateValue])
     message_structure("read_clauses") =
