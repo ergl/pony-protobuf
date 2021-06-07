@@ -13,3 +13,25 @@ jobs:
         uses: actions/checkout@v2
       - name: Verify CHANGELOG
         run: changelog-tool verify
+
+  linux-release-vs-ponyc-release:
+    name: Verify release mode on Linux with most recent ponyc release
+    runs-on: ubuntu-latest
+    container:
+      image: ponylang/shared-docker-ci-x86-64-unknown-linux-builder:release
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v2
+      - name: Test with the most recent ponyc release
+        run: make test config=release
+
+  linux-debug-vs-ponyc-release:
+    name: Verify debug mode on Linux with most recent ponyc release
+    runs-on: ubuntu-latest
+    container:
+      image: ponylang/shared-docker-ci-x86-64-unknown-linux-builder:release
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v2
+      - name: Test with the most recent ponyc release
+        run: make test config=debug
