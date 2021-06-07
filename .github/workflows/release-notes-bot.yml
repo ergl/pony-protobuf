@@ -1,0 +1,24 @@
+name: Release Notes Bot
+
+on:
+  push:
+    branches:
+      - '**'
+    tags-ignore:
+      - '**'
+    paths-ignore:
+      - .release-notes/next-release.md
+      - .release-notes/\d+.\d+.\d+.md
+
+jobs:
+  release-notes-bot:
+    runs-on: ubuntu-latest
+    name: Update release notes
+    steps:
+      - name: Update
+        uses: docker://ponylang/release-notes-bot-action:0.3.4
+        with:
+          git_user_name: "Borja o'Cook"
+          git_user_email: "ergl@users.noreply.github.com"
+        env:
+          API_CREDENTIALS: ${{ secrets.GITHUB_TOKEN }}
