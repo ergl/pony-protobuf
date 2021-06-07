@@ -16,7 +16,7 @@
     "description": "A protocol buffers library for Pony",
     "homepage": "https://github.com/ergl/pony-protobuf",
     "license": "BSD-2-Clause",
-    "documentation_url": "",
+    "documentation_url": "https://ergl.github.io/pony-protobuf/",
     "version": "0.10",
     "name": "protobuf"
   }
