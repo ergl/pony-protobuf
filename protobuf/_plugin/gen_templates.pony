@@ -51,6 +51,8 @@ class val GenTemplate
   let write_repeated_inner_message_clause: Template
   let write_packed_varint: Template
   let write_packed_varint_bool: Template
+  let write_packed_fixed: Template
+  let write_packed_enum: Template
   let write_optional_clause: Template
 
   new val create() ? =>
@@ -374,6 +376,26 @@ class val GenTemplate
             end
             writer.write_tag({{number}}, DelimitedField)
             writer.write_packed_varint[{{type}}]({{field}}, {{field}}_size)
+          end"""
+    )?
+
+    write_packed_fixed = Template.parse(
+      """
+      if {{field}}.size() != 0 then
+            writer.write_tag({{number}}, DelimitedField)
+            writer.write_packed_fixed{{fixed_size}}[{{type}}]({{field}})
+          end"""
+    )?
+
+    write_packed_enum = Template.parse(
+      """
+      if {{field}}.size() != 0 then
+            var {{field}}_size: U32 = 0
+            for v in {{field}}.values() do
+              {{field}}_size = {{field}}_size + FieldSize.raw_varint(v.as_i32().u64())
+            end
+            writer.write_tag({{number}}, DelimitedField)
+            writer.write_packed_enum[{{type}}]({{field}}, {{field}}_size)
           end"""
     )?
 

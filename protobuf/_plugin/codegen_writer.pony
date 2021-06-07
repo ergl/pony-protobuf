@@ -88,27 +88,29 @@ class CodeGenWriter
     : String
     ?
   =>
+    let tpl = TemplateValues
+    tpl("field") = field_meta.name
+    tpl("number") = field_meta.number
+    tpl("type") = field_meta.pony_type_inner
     // If it's packed, underlying type has to be primitive or enum
     match field_meta.proto_type
     | PrimitiveType =>
       match field_meta.wire_type
       | VarintField =>
-        let tpl = TemplateValues
-        tpl("field") = field_meta.name
-        tpl("number") = field_meta.number
-        tpl("type") = field_meta.pony_type_inner
         if field_meta.pony_type_inner == "Bool" then
           template_ctx.write_packed_varint_bool.render(tpl)?
         else
           template_ctx.write_packed_varint.render(tpl)?
         end
       else
-        // FIXME(borja): Handle more packed values
-        error
+        // We only have packed Fixed32 and Fixed64, since protoc
+        // will discard packed strings and bytes
+        tpl("fixed_size") =
+          if field_meta.wire_type is Fixed32Field then "32" else "64" end
+        template_ctx.write_packed_fixed.render(tpl)?
       end
     | EnumType =>
-      // FIXME(borja): Don't know how to handle these yet
-      error
+      template_ctx.write_packed_enum.render(tpl)?
     | MessageType =>
       // In theory, protoc should discard these before it sends us
       // the codegen request, so it should be okay to error here
