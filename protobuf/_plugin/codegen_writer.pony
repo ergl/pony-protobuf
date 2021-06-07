@@ -481,7 +481,7 @@ class CodeGenWriter
       tpl("type") = field_meta.pony_type_usage
       template_ctx.read_inner_message
     | EnumType =>
-      tpl("enum_builder") = "" // FIXME(borja): Get builder name
+      tpl("enum_builder") = GenNames.enum_builder(field_meta.pony_type_usage)
       template_ctx.read_enum
     | PrimitiveType =>
       match field_meta.wire_type

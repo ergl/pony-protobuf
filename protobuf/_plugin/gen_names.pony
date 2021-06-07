@@ -8,6 +8,9 @@ primitive GenNames
     name.replace("_", "")
     consume name
 
+  fun enum_builder(enum_pony_name: String): String =>
+    enum_pony_name + "Builder"
+
   fun message_field(name: String): String =>
     if _is_keyword(name) then
       return name + "_field"
