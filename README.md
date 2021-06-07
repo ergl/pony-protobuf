@@ -18,18 +18,18 @@ A protocol buffers library and compiler for Pony.
 
 ### What doesn't work (yet)
 
-- [ ] `oneof` fields
-- [ ] `map<_,_>` syntax
-- [ ] "proto3" syntax
-- [ ] Message extensions.
-- [ ] Generating descriptor metadata
-- [ ] Discards any unknown types when parsing.
-- [ ] groups (proto2). Although deprecated, the current library doesn't know how to handle these. In the future it will ignore any groups when marshalling.
-- [ ] Default definitions for `byte` fields.
-- [ ] The `allow_alias` enum option.
-- [ ] JSON serialization.
-- [ ] Service definitions.
-- [ ] Proper package namespaces. Importing packages is supported, but the generated code assumes that the types will be present in the same Pony package.
+* [ ] `oneof` fields
+* [ ] `map<_,_>` syntax
+* [ ] "proto3" syntax
+* [ ] Message extensions.
+* [ ] Generating descriptor metadata
+* [ ] Discards any unknown types when parsing.
+* [ ] groups (proto2). Although deprecated, the current library doesn't know how to handle these. In the future it will ignore any groups when marshalling.
+* [ ] Default definitions for `byte` fields.
+* [ ] The `allow_alias` enum option.
+* [ ] JSON serialization.
+* [ ] Service definitions.
+* [ ] Proper package namespaces. Importing packages is supported, but the generated code assumes that the types will be present in the same Pony package.
 
 ## Installation
 
@@ -47,7 +47,7 @@ The compiler is implemented as a `protoc` plugin. If you don't have `protoc` ins
 
 If you have downloaded the repo, run `make plugin`. This will generate a `protoc-gen-pony` file in `build/release` that you can use with `protoc`, as such:
 
-```
+```sh
 protoc --pony_out=<out_dir> --plugin=build/release/protoc-gen-pony path/to/proto/file.proto
 ```
 
