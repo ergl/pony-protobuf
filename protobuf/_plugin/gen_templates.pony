@@ -70,6 +70,7 @@ class val GenTemplate
       """
       primitive {{name}} is ProtoEnumValue
         fun as_i32(): I32 => {{value}}
+        fun string(): String => "{{name}}"
 
       """
     )?
