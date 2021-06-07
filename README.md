@@ -126,7 +126,7 @@ Since Pony lacks the concept of C-style enums, `pony-protobuf` opts to represent
 
 ```proto
 enum PhoneType {
-	MOBILE = 0;
+    MOBILE = 0;
     HOME = 1;
     WORK = 2;
 }
