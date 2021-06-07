@@ -295,10 +295,10 @@ class CodeGenWriter
     tpl("name") = field_meta.name
     tpl("number") = field_meta.number
     match field_meta.proto_type
-    | EnumType =>
-      // FIXME(borja): Don't know how to handle these yet
-      error
     | MessageType => error // Can't have packed messages
+    | EnumType =>
+      tpl("method") = "packed_enum"
+      tpl("method_type") = field_meta.pony_type_inner
     | PrimitiveType =>
       match field_meta.wire_type
       | VarintField =>
@@ -310,8 +310,15 @@ class CodeGenWriter
             "packed_varint"
           end
       else
-        // FIXME(Borja): Handle more packed values
-        error
+        // We only have packed Fixed32 and Fixed64, since protoc
+        // will discard packed strings and bytes
+        tpl("method_type") = field_meta.pony_type_inner
+        tpl("method") =
+          if field_meta.wire_type is Fixed32Field then
+            "packed_fixed32"
+          else
+            "packed_fixed64"
+          end
       end
     end
     template_ctx.size_packed_clause.render(tpl)?

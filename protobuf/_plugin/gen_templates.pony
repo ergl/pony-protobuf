@@ -179,8 +179,7 @@ class val GenTemplate
 
     size_packed_clause = Template.parse(
       """
-      size = size + FieldSize.{{method}}{{if method_type}}[{{method_type}}]{{end}}({{number}}, {{name}})
-      """
+      size = size + FieldSize.{{method}}{{if method_type}}[{{method_type}}]{{end}}({{number}}, {{name}})"""
     )?
 
     read_bytes = Template.parse(
