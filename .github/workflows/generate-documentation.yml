@@ -1,0 +1,22 @@
+name: Manually generate documentation
+
+on:
+  workflow_dispatch
+
+jobs:
+  generate-documentation:
+    name: Generate documentation for release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v2
+      - name: Generate documentation and upload
+        uses: docker://ponylang/library-documentation-action:0.1.6
+        with:
+          site_url: "https://ergl.github.io/pony-protobuf/"
+          library_name: "protobuf"
+          docs_build_dir: "build/protobuf-docs"
+          git_user_name: "Borja o'Cook"
+          git_user_email: "ergl@users.noreply.github.com"
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
