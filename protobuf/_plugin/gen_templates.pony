@@ -292,9 +292,6 @@ class val GenTemplate
           end"""
     )?
 
-    // TODO(borja): This is rendered with wonky indentation
-    // Perhaps due to it being serialized to string before putting it
-    // into another template?
     write_packed_varint = Template.parse(
       """
       if {{field}}.size() != 0 then
@@ -307,9 +304,6 @@ class val GenTemplate
           end"""
     )?
 
-    // TODO(borja): This is rendered with wonky indentation
-    // Perhaps due to it being serialized to string before putting it
-    // into another template?
     write_repeated_inner_message_clause = Template.parse(
       """
       for v in {{field}}.values() do
