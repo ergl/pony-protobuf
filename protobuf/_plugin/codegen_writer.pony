@@ -100,7 +100,11 @@ class CodeGenWriter
         if field_meta.pony_type_inner == "Bool" then
           template_ctx.write_packed_varint_bool.render(tpl)?
         else
-          template_ctx.write_packed_varint.render(tpl)?
+          if field_meta.uses_zigzag then
+            template_ctx.write_packed_varint_zigzag.render(tpl)?
+          else
+            template_ctx.write_packed_varint.render(tpl)?
+          end
         end
       else
         // We only have packed Fixed32 and Fixed64, since protoc

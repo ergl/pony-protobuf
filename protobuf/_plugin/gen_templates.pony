@@ -50,6 +50,7 @@ class val GenTemplate
   let write_repeated_non_message_type: Template
   let write_repeated_inner_message_clause: Template
   let write_packed_varint: Template
+  let write_packed_varint_zigzag: Template
   let write_packed_varint_bool: Template
   let write_packed_fixed: Template
   let write_packed_enum: Template
@@ -365,6 +366,18 @@ class val GenTemplate
             end
             writer.write_tag({{number}}, DelimitedField)
             writer.write_packed_varint[{{type}}]({{field}}, {{field}}_size)
+          end"""
+    )?
+
+    write_packed_varint_zigzag = Template.parse(
+      """
+      if {{field}}.size() != 0 then
+            var {{field}}_size: U32 = 0
+            for v in {{field}}.values() do
+              {{field}}_size = {{field}}_size + FieldSize.raw_varint(ZigZag.encode_64(v.i64()))
+            end
+            writer.write_tag({{number}}, DelimitedField)
+            writer.write_packed_varint_zigzag[{{type}}]({{field}}, {{field}}_size)
           end"""
     )?
 
