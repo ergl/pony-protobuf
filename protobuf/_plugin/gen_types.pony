@@ -144,7 +144,7 @@ primitive GenTypes
       if pony_type_decl == "U64" then
         None
       elseif pony_type_decl == "I64" then
-        if is_zigzag then None else "u64" end
+        if is_zigzag then None else "i64" end
       elseif pony_type_decl == "U32" then
         None
       elseif pony_type_decl == "I32" then
