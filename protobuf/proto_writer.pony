@@ -57,6 +57,33 @@ class ProtoWriter
       write_varint_zigzag[T](v)
     end
 
+  fun ref write_packed_fixed32
+    [T: (U32 | I32 | F32)]
+    (from: Array[T] box)
+  =>
+    write_varint[U32]((from.size() * 4).u32())
+    for v in from.values() do
+      write_fixed_32[T](v)
+    end
+
+  fun ref write_packed_fixed64
+    [T: (U64 | I64 | F64)]
+    (from: Array[T] box)
+  =>
+    write_varint[U32]((from.size() * 8).u32())
+    for v in from.values() do
+      write_fixed_64[T](v)
+    end
+
+  fun ref write_packed_enum
+    [T: ProtoEnumValue val]
+    (from: Array[T] box, from_size: U32)
+  =>
+    write_varint[U32](from_size)
+    for v in from.values() do
+      write_varint[I32](v.as_i32())
+    end
+
   fun ref _write_raw_varint(n: U64) =>
     var n' = n
     while n' >= 0x80 do
