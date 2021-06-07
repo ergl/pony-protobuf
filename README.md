@@ -173,6 +173,10 @@ primitive PhoneType
 
 This option is shorter, doesn't pollute the namespace, but doesn't offer any type-checking affordances to the user. That's the reason I opted for the more verbose alternative. In the future, I might change this.
 
+## API Documentation
+
+[API documentation](https://ergl.github.io/pony-protobuf/)
+
 ## Performance
 
 Baby steps.
