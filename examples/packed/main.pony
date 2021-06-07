@@ -64,14 +64,95 @@ actor Main
     true
 
   fun walk_message(out: OutStream, msg: (TestUnpacked | TestPacked)) =>
-    let values: Array[I32] = match msg
+    let values = match msg
     | let up: TestUnpacked => up.values
     | let p: TestPacked => p.values
     end
-    var size = values.size()
+    let values_32 = match msg
+    | let up: TestUnpacked => up.values_32
+    | let p: TestPacked => p.values_32
+    end
+    let values_64 = match msg
+    | let up: TestUnpacked => up.values_64
+    | let p: TestPacked => p.values_64
+    end
+    let values_bool = match msg
+    | let up: TestUnpacked => up.values_bool
+    | let p: TestPacked => p.values_bool
+    end
+    let values_enum = match msg
+    | let up: TestUnpacked => up.values_enum
+    | let p: TestPacked => p.values_enum
+    end
+    let values_zigzag = match msg
+    | let up: TestUnpacked => up.values_zigzag
+    | let p: TestPacked => p.values_zigzag
+    end
+
     var idx: USize = 0
+    var size = values.size()
     let descr = recover String .> append("values=[") end
     for v in values.values() do
+      descr.append(v.string())
+      if idx < (size - 1) then
+        descr.append(", ")
+      end
+      idx = idx + 1
+    end
+    descr.append("]")
+
+    idx = 0
+    size = values_32.size()
+    descr.append("\nvalues_32=[")
+    for v in values_32.values() do
+      descr.append(v.string())
+      if idx < (size - 1) then
+        descr.append(", ")
+      end
+      idx = idx + 1
+    end
+    descr.append("]")
+
+    idx = 0
+    size = values_64.size()
+    descr.append("\nvalues_64=[")
+    for v in values_64.values() do
+      descr.append(v.string())
+      if idx < (size - 1) then
+        descr.append(", ")
+      end
+      idx = idx + 1
+    end
+    descr.append("]")
+
+    idx = 0
+    size = values_bool.size()
+    descr.append("\nvalues_bool=[")
+    for v in values_bool.values() do
+      descr.append(v.string())
+      if idx < (size - 1) then
+        descr.append(", ")
+      end
+      idx = idx + 1
+    end
+    descr.append("]")
+
+    idx = 0
+    size = values_enum.size()
+    descr.append("\nvalues_enum=[")
+    for v in values_enum.values() do
+      descr.append(v.string())
+      if idx < (size - 1) then
+        descr.append(", ")
+      end
+      idx = idx + 1
+    end
+    descr.append("]")
+
+    idx = 0
+    size = values_zigzag.size()
+    descr.append("\nvalues_zigzag=[")
+    for v in values_zigzag.values() do
       descr.append(v.string())
       if idx < (size - 1) then
         descr.append(", ")
@@ -89,7 +170,14 @@ primitive _UnpackedBytes
     It contains the following definiton:
 
     ```erlang
-    #{values => lists:seq(-10, 10)}.
+    #{
+      values => lists:seq(-10, 10),
+      values_32 => lists:seq(-10, 10),
+      values_64 => lists:seq(-10, 10),
+      values_bool => [ X rem 2 =:= 0 || X <- lists:seq(-10, 10)],
+      values_enum => [ abs(X rem 3) || X <- lists:seq(-10, 10)],
+      values_zigzag => lists:seq(-10, 10)
+    }.
     ```
     """
     [
@@ -100,7 +188,29 @@ primitive _UnpackedBytes
       255;255;255;255;1;8;252;255;255;255;255;255;255;255;255
       1;8;253;255;255;255;255;255;255;255;255;1;8;254;255;255
       255;255;255;255;255;255;1;8;255;255;255;255;255;255;255
-      255;255;1;8;0;8;1;8;2;8;3;8;4;8;5;8;6;8;7;8;8;8;9;8;1
+      255;255;1;8;0;8;1;8;2;8;3;8;4;8;5;8;6;8;7;8;8;8;9;8;10
+      21;246;255;255;255;21;247;255;255;255;21;248;255;255
+      255;21;249;255;255;255;21;250;255;255;255;21;251;255
+      255;255;21;252;255;255;255;21;253;255;255;255;21;254
+      255;255;255;21;255;255;255;255;21;0;0;0;0;21;1;0;0;0;21
+      2;0;0;0;21;3;0;0;0;21;4;0;0;0;21;5;0;0;0;21;6;0;0;0;21
+      7;0;0;0;21;8;0;0;0;21;9;0;0;0;21;10;0;0;0;25;246;255
+      255;255;255;255;255;255;25;247;255;255;255;255;255;255
+      255;25;248;255;255;255;255;255;255;255;25;249;255;255
+      255;255;255;255;255;25;250;255;255;255;255;255;255;255
+      25;251;255;255;255;255;255;255;255;25;252;255;255;255
+      255;255;255;255;25;253;255;255;255;255;255;255;255;25
+      254;255;255;255;255;255;255;255;25;255;255;255;255;255
+      255;255;255;25;0;0;0;0;0;0;0;0;25;1;0;0;0;0;0;0;0;25;2
+      0;0;0;0;0;0;0;25;3;0;0;0;0;0;0;0;25;4;0;0;0;0;0;0;0;25
+      5;0;0;0;0;0;0;0;25;6;0;0;0;0;0;0;0;25;7;0;0;0;0;0;0;0
+      25;8;0;0;0;0;0;0;0;25;9;0;0;0;0;0;0;0;25;10;0;0;0;0;0;0
+      0;32;1;32;0;32;1;32;0;32;1;32;0;32;1;32;0;32;1;32;0;32
+      1;32;0;32;1;32;0;32;1;32;0;32;1;32;0;32;1;32;0;32;1;40
+      1;40;0;40;2;40;1;40;0;40;2;40;1;40;0;40;2;40;1;40;0;40
+      1;40;2;40;0;40;1;40;2;40;0;40;1;40;2;40;0;40;1;48;19;48
+      17;48;15;48;13;48;11;48;9;48;7;48;5;48;3;48;1;48;0;48;2
+      48;4;48;6;48;8;48;10;48;12;48;14;48;16;48;18;48;20
     ]
 
 primitive _PackedBytes
@@ -111,7 +221,14 @@ primitive _PackedBytes
     It contains the following definiton:
 
     ```erlang
-    #{values => lists:seq(-10, 10)}.
+    #{
+      values => lists:seq(-10, 10),
+      values_32 => lists:seq(-10, 10),
+      values_64 => lists:seq(-10, 10),
+      values_bool => [ X rem 2 =:= 0 || X <- lists:seq(-10, 10)],
+      values_enum => [ abs(X rem 3) || X <- lists:seq(-10, 10)],
+      values_zigzag => lists:seq(-10, 10)
+    }.
     ```
     """
     [
@@ -122,5 +239,21 @@ primitive _PackedBytes
       255;255;255;255;1;252;255;255;255;255;255;255;255;255;1
       253;255;255;255;255;255;255;255;255;1;254;255;255;255
       255;255;255;255;255;1;255;255;255;255;255;255;255;255
-      255;1;0;1;2;3;4;5;6;7;8;9;1
+      255;1;0;1;2;3;4;5;6;7;8;9;10;18;84;246;255;255;255;247
+      255;255;255;248;255;255;255;249;255;255;255;250;255;255
+      255;251;255;255;255;252;255;255;255;253;255;255;255;254
+      255;255;255;255;255;255;255;0;0;0;0;1;0;0;0;2;0;0;0;3;0
+      0;0;4;0;0;0;5;0;0;0;6;0;0;0;7;0;0;0;8;0;0;0;9;0;0;0;10
+      0;0;0;26;168;1;246;255;255;255;255;255;255;255;247;255
+      255;255;255;255;255;255;248;255;255;255;255;255;255;255
+      249;255;255;255;255;255;255;255;250;255;255;255;255;255
+      255;255;251;255;255;255;255;255;255;255;252;255;255;255
+      255;255;255;255;253;255;255;255;255;255;255;255;254;255
+      255;255;255;255;255;255;255;255;255;255;255;255;255;255
+      0;0;0;0;0;0;0;0;1;0;0;0;0;0;0;0;2;0;0;0;0;0;0;0;3;0;0;0
+      0;0;0;0;4;0;0;0;0;0;0;0;5;0;0;0;0;0;0;0;6;0;0;0;0;0;0;0
+      7;0;0;0;0;0;0;0;8;0;0;0;0;0;0;0;9;0;0;0;0;0;0;0;10;0;0
+      0;0;0;0;0;34;21;1;0;1;0;1;0;1;0;1;0;1;0;1;0;1;0;1;0;1;0
+      1;42;21;1;0;2;1;0;2;1;0;2;1;0;1;2;0;1;2;0;1;2;0;1;50;21
+      19;17;15;13;11;9;7;5;3;1;0;2;4;6;8;10;12;14;16;18;20
     ]

@@ -1,9 +1,25 @@
 syntax = "proto2";
 
+enum TestEnum {
+  UNKNOWN = 0;
+  FIRST_FIELD = 1;
+  SECOND_FIELD = 2;
+}
+
 message TestPacked {
   repeated int32 values = 1 [packed = true];
+  repeated sfixed32 values_32 = 2 [packed = true];
+  repeated sfixed64 values_64 = 3 [packed = true];
+  repeated bool values_bool = 4 [packed = true];
+  repeated TestEnum values_enum = 5 [packed = true];
+  repeated sint32 values_zigzag = 6 [packed = true];
 }
 
 message TestUnpacked {
   repeated int32 values = 1;
+  repeated sfixed32 values_32 = 2;
+  repeated sfixed64 values_64 = 3;
+  repeated bool values_bool = 4;
+  repeated TestEnum values_enum = 5;
+  repeated sint32 values_zigzag = 6;
 }
