@@ -1,6 +1,6 @@
+use "debug" // TODO(borja): remove
 use "templates"
 use "collections"
-use "debug" // TODO(borja): remove
 
 use ".."
 
@@ -68,14 +68,14 @@ class CodeGenWriter
     end
 
   fun _fill_fields(
-    field_info: Map[String, FieldMeta] box,
+    field_info: Array[FieldMeta] box,
     template_ctx: GenTemplate)
     : TemplateValue
   =>
     let fields = Array[TemplateValue]
-    for (name, meta) in field_info.pairs() do
+    for meta in field_info.values() do
       let tpl = Map[String, TemplateValue]
-      tpl("name") = TemplateValue(name)
+      tpl("name") = TemplateValue(meta.name)
       tpl("pony_type") = TemplateValue(meta.pony_type_decl)
       tpl("default") = TemplateValue(meta.default_assignment)
       fields.push(TemplateValue("", tpl))
@@ -83,7 +83,6 @@ class CodeGenWriter
     TemplateValue(fields)
 
   fun _fill_write_clause_packed(
-    field_name: String,
     field_meta: FieldMeta,
     template_ctx: GenTemplate)
     : String
@@ -95,7 +94,7 @@ class CodeGenWriter
       match field_meta.wire_type
       | VarintField =>
         let tpl = TemplateValues
-        tpl("field") = field_name
+        tpl("field") = field_meta.name
         tpl("number") = field_meta.number
         tpl("type") = field_meta.pony_type_inner
         template_ctx.write_packed_varint.render(tpl)?
@@ -113,14 +112,13 @@ class CodeGenWriter
     end
 
   fun _fill_write_clause_repeated(
-    field_name: String,
     field_meta: FieldMeta,
     template_ctx: GenTemplate)
     : String
     ?
   =>
     let tpl = TemplateValues
-    tpl("field") = field_name
+    tpl("field") = field_meta.name
     tpl("number") = field_meta.number
     match field_meta.proto_type
     | PrimitiveType =>
@@ -153,14 +151,13 @@ class CodeGenWriter
     end
 
   fun _fill_write_clause_optional(
-    field_name: String,
     field_meta: FieldMeta,
     template_ctx: GenTemplate)
     : String
     ?
   =>
     let tpl = TemplateValues
-    tpl("field") = field_name
+    tpl("field") = field_meta.name
     tpl("type") = field_meta.pony_type_inner
     if
       (field_meta.proto_type is MessageType) or
@@ -172,7 +169,7 @@ class CodeGenWriter
     end
     let inner_tpl = TemplateValues
     // Use primed variable inside the optional clause
-    inner_tpl("field") = field_name + "'"
+    inner_tpl("field") = field_meta.name + "'"
     inner_tpl("number") = field_meta.number
     inner_tpl("type") = field_meta.pony_type_inner
     let inner_template = match field_meta.proto_type
@@ -195,7 +192,6 @@ class CodeGenWriter
     template_ctx.write_optional_clause.render(tpl)?
 
   fun _fill_write_clause(
-    field_name: String,
     field_meta: FieldMeta,
     template_ctx: GenTemplate)
     : String
@@ -203,39 +199,38 @@ class CodeGenWriter
   =>
     match field_meta.proto_label
     | RepeatedPacked =>
-      _fill_write_clause_packed(field_name, field_meta, template_ctx)?
+      _fill_write_clause_packed(field_meta, template_ctx)?
     | Repeated =>
-      _fill_write_clause_repeated(field_name, field_meta, template_ctx)?
+      _fill_write_clause_repeated(field_meta, template_ctx)?
     else
-      _fill_write_clause_optional(field_name, field_meta, template_ctx)?
+      _fill_write_clause_optional(field_meta, template_ctx)?
     end
 
   fun _fill_write_clauses(
-    field_info: Map[String, FieldMeta] box,
+    field_info: Array[FieldMeta] box,
     template_ctx: GenTemplate)
     : TemplateValue
   =>
     let clauses = Array[TemplateValue]
-    for (name, meta) in field_info.pairs() do
+    for meta in field_info.values() do
       try
         clauses.push(
-          TemplateValue(_fill_write_clause(name, meta, template_ctx)?)
+          TemplateValue(_fill_write_clause(meta, template_ctx)?)
         )
       else
-        Debug.err("failed to fill write clause template for " + name)
+        Debug.err("failed to fill write clause template for " + meta.name)
       end
     end
     TemplateValue(clauses)
 
   fun _fill_init_clause(
-    field_name: String,
     field_meta: FieldMeta,
     template_ctx: GenTemplate)
     : String
     ?
   =>
     let tpl = TemplateValues
-    tpl("name") = field_name
+    tpl("name") = field_meta.name
     match field_meta.proto_label
     | Required =>
       match field_meta.proto_type
@@ -272,29 +267,28 @@ class CodeGenWriter
     end
 
   fun _fill_init_clauses(
-    field_info: Map[String, FieldMeta] box,
+    field_info: Array[FieldMeta] box,
     template_ctx: GenTemplate)
     : TemplateValue
   =>
     let clauses = Array[TemplateValue]
-    for (name, meta) in field_info.pairs() do
+    for meta in field_info.values() do
       try
         clauses.push(
-          TemplateValue(_fill_init_clause(name, meta, template_ctx)?)
+          TemplateValue(_fill_init_clause(meta, template_ctx)?)
         )
       end
     end
     TemplateValue(clauses)
 
   fun _fill_size_clause_packed(
-    field_name: String,
     field_meta: FieldMeta,
     template_ctx: GenTemplate)
     : String
     ?
   =>
     let tpl = TemplateValues
-    tpl("name") = field_name
+    tpl("name") = field_meta.name
     tpl("number") = field_meta.number
     match field_meta.proto_type
     | EnumType =>
@@ -319,14 +313,13 @@ class CodeGenWriter
     template_ctx.size_packed_clause.render(tpl)?
 
   fun _fill_size_clause_default(
-    field_name: String,
     field_meta: FieldMeta,
     template_ctx: GenTemplate)
     : String
     ?
   =>
     let tpl = TemplateValues
-    tpl("name") = field_name
+    tpl("name") = field_meta.name
     tpl("number") = field_meta.number
     tpl("type") = field_meta.pony_type_inner
     match field_meta.proto_type
@@ -369,7 +362,6 @@ class CodeGenWriter
     end
 
   fun _fill_size_clause(
-    field_name: String,
     field_meta: FieldMeta,
     template_ctx: GenTemplate)
     : String
@@ -377,36 +369,35 @@ class CodeGenWriter
   =>
     match field_meta.proto_label
     | RepeatedPacked =>
-      _fill_size_clause_packed(field_name, field_meta, template_ctx)?
+      _fill_size_clause_packed(field_meta, template_ctx)?
     else
       // We handle the rest the same, only difference is the template
-      _fill_size_clause_default(field_name, field_meta, template_ctx)?
+      _fill_size_clause_default(field_meta, template_ctx)?
     end
 
   fun _fill_size_clauses(
-    field_info: Map[String, FieldMeta] box,
+    field_info: Array[FieldMeta] box,
     template_ctx: GenTemplate)
     : TemplateValue
   =>
     let clauses = Array[TemplateValue]
-    for (name, meta) in field_info.pairs() do
+    for meta in field_info.values() do
       try
         clauses.push(
-          TemplateValue(_fill_size_clause(name, meta, template_ctx)?)
+          TemplateValue(_fill_size_clause(meta, template_ctx)?)
         )
       end
     end
     TemplateValue(clauses)
 
   fun _fill_read_clause_packed(
-    field_name: String,
     field_meta: FieldMeta,
     template_ctx: GenTemplate)
     : String
     ?
   =>
     let tpl = TemplateValues
-    tpl("name") = field_name
+    tpl("name") = field_meta.name
     tpl("number") = field_meta.number
     tpl("wire_type") = field_meta.wire_type.string()
     match field_meta.proto_type
@@ -442,14 +433,13 @@ class CodeGenWriter
     end
 
   fun _fill_read_clause_repeated(
-    field_name: String,
     field_meta: FieldMeta,
     template_ctx: GenTemplate)
     : String
     ?
   =>
     let tpl = TemplateValues
-    tpl("name") = field_name
+    tpl("name") = field_meta.name
     tpl("number") = field_meta.number
     tpl("wire_type") = field_meta.wire_type.string()
     let template = match field_meta.proto_type
@@ -503,14 +493,13 @@ class CodeGenWriter
     template.render(tpl)?
 
   fun _fill_read_clause_optional(
-    field_name: String,
     field_meta: FieldMeta,
     template_ctx: GenTemplate)
     : String
     ?
   =>
     let tpl = TemplateValues
-    tpl("name") = field_name
+    tpl("name") = field_meta.name
     tpl("number") = field_meta.number
     tpl("wire_type") = field_meta.wire_type.string()
     let template = match field_meta.proto_type
@@ -564,7 +553,6 @@ class CodeGenWriter
     template.render(tpl)?
 
   fun _fill_read_clause(
-    field_name: String,
     field_meta: FieldMeta,
     template_ctx: GenTemplate)
     : String
@@ -572,23 +560,23 @@ class CodeGenWriter
   =>
     match field_meta.proto_label
     | RepeatedPacked =>
-      _fill_read_clause_packed(field_name, field_meta, template_ctx)?
+      _fill_read_clause_packed(field_meta, template_ctx)?
     | Repeated =>
-      _fill_read_clause_repeated(field_name, field_meta, template_ctx)?
+      _fill_read_clause_repeated(field_meta, template_ctx)?
     else
-      _fill_read_clause_optional(field_name, field_meta, template_ctx)?
+      _fill_read_clause_optional(field_meta, template_ctx)?
     end
 
   fun _fill_read_clauses(
-    field_info: Map[String, FieldMeta] box,
+    field_info: Array[FieldMeta] box,
     template_ctx: GenTemplate)
     : TemplateValue
   =>
     let clauses = Array[TemplateValue]
-    for (name, meta) in field_info.pairs() do
+    for meta in field_info.values() do
       try
         clauses.push(
-          TemplateValue(_fill_read_clause(name, meta, template_ctx)?)
+          TemplateValue(_fill_read_clause(meta, template_ctx)?)
         )
       end
     end
@@ -596,7 +584,7 @@ class CodeGenWriter
 
   fun ref write_message(
     message_name: String,
-    field_info: Map[String, FieldMeta] box,
+    field_info: Array[FieldMeta] box,
     template_ctx: GenTemplate)
   =>
     let message_structure = TemplateValues

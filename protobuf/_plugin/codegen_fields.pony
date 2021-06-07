@@ -12,8 +12,10 @@ primitive EnumType
 primitive MessageType
 type FieldProtoType is (PrimitiveType | EnumType | MessageType)
 
-class val FieldMeta
+class val FieldMeta is Comparable[FieldMeta]
+  let name: String
   let number: String
+  let _number: I32
   let wire_type: TagKind
   let uses_zigzag: Bool
   // The Pony type at the field declaration
@@ -25,7 +27,8 @@ class val FieldMeta
   let proto_label: FieldProtoLabel
 
   new val create(
-    number': String,
+    name': String,
+    number': I32,
     wire_type': TagKind,
     uses_zigzag': Bool,
     pony_type_decl': String,
@@ -34,7 +37,9 @@ class val FieldMeta
     proto_type': FieldProtoType,
     proto_label': FieldProtoLabel)
   =>
-    number = number'
+    name = name'
+    _number = number'
+    number = _number.string()
     wire_type = wire_type'
     uses_zigzag = uses_zigzag'
     pony_type_decl = pony_type_decl'
@@ -42,6 +47,10 @@ class val FieldMeta
     default_assignment = default_assignment'
     proto_type = proto_type'
     proto_label = proto_label'
+
+  fun eq(other: FieldMeta box): Bool => _number == other._number
+  fun ne(other: FieldMeta box): Bool => _number != other._number
+  fun lt(other: FieldMeta box): Bool => _number < other._number
 
 primitive CodeGenFields
   fun _get_proto_label(field: FieldDescriptorProto): FieldProtoLabel =>
@@ -72,10 +81,10 @@ primitive CodeGenFields
     template_ctx: GenTemplate,
     scope: SymbolScope box,
     fields: Array[FieldDescriptorProto])
-    : Map[String, FieldMeta] val
+    : Array[FieldMeta] val
   =>
     // Mapping of fields to its field number and kind
-    let field_meta = recover Map[String, FieldMeta] end
+    let field_meta = recover Array[FieldMeta] end
     let field_numbers = Map[String, (U64, TagKind)]
     for field in fields.values() do
       try
@@ -92,9 +101,10 @@ primitive CodeGenFields
         ) = field_type_tuple
         let proto_label = _get_proto_label(field)
         let proto_type = _get_proto_type(field)
-        field_meta(name) =
+        field_meta.push(
           FieldMeta(where
-            number' = field_number.string(),
+            name' = name,
+            number' = field_number,
             wire_type' = wire_type,
             uses_zigzag' = needs_zigzag,
             pony_type_decl' = pony_type_decl,
@@ -103,9 +113,10 @@ primitive CodeGenFields
             proto_type' = proto_type,
             proto_label' = proto_label
           )
+        )
       end // TODO(borja): What do we do about anonymous messages?
     end
-    consume field_meta
+    recover Sort[Array[FieldMeta], FieldMeta](consume field_meta) end
 
   fun _find_field_type(
     field: FieldDescriptorProto,
