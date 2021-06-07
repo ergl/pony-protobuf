@@ -40,7 +40,7 @@ class ProtoReader
   fun ref read_fixed_64_float(): F64 ? => _reader.f64_le()?
 
   fun ref read_packed_varint
-    [T: (I32 | I64 | U32 | U64)]
+    [T: (I32 | I64 | U32 | U64 | Bool)]
     (into: Array[T])
     ?
   =>
@@ -48,7 +48,9 @@ class ProtoReader
     let target_size = size() - packed_size
     into.reserve(into.size() + packed_size)
     while size() > target_size do
-      iftype T <: I32 then
+      iftype T <: Bool then
+        into.push(if read_varint_32()? == 1 then true else false end)
+      elseif T <: I32 then
         into.push(read_varint_32()?.i32())
       elseif T <: U32 then
         into.push(read_varint_32()?)
@@ -72,6 +74,62 @@ class ProtoReader
         into.push(ZigZag.decode_32(read_varint_32()?))
       elseif T <: I64 then
         into.push(ZigZag.decode_64(read_varint_64()?))
+      end
+    end
+
+  fun ref read_packed_fixed_32
+    [T: (U32 | I32 | F32)]
+    (into: Array[T])
+    ?
+  =>
+    let packed_size = read_raw_delimited_length()?
+    let target_size = size() - packed_size
+    into.reserve(into.size() + packed_size)
+    while size() > target_size do
+      iftype T <: U32 then
+        into.push(read_fixed_32_integer()?)
+      elseif T <: I32 then
+        into.push(read_fixed_32_integer()?.i32())
+      elseif T <: F32 then
+        into.push(read_fixed_32_float()?)
+      end
+    end
+
+  fun ref read_packed_fixed_64
+    [T: (U64 | I64 | F64)]
+    (into: Array[T])
+    ?
+  =>
+    let packed_size = read_raw_delimited_length()?
+    let target_size = size() - packed_size
+    into.reserve(into.size() + packed_size)
+    while size() > target_size do
+      iftype T <: U64 then
+        into.push(read_fixed_64_integer()?)
+      elseif T <: I64 then
+        into.push(read_fixed_64_integer()?.i64())
+      elseif T <: F64 then
+        into.push(read_fixed_64_float()?)
+      end
+    end
+
+  fun ref read_packed_enum
+    [T: ProtoEnumValue val]
+    (into: Array[T], builder: ProtoEnum)
+    ?
+  =>
+    let packed_size = read_raw_delimited_length()?
+    let target_size = size() - packed_size
+    into.reserve(into.size() + packed_size)
+    while size() > target_size do
+      try
+        match builder.from_i32(read_varint_32()?.i32())
+        | None => None
+        | let field: T =>
+          iftype T <: ProtoEnumValue then
+            into.push(field)
+          end
+        end
       end
     end
 
