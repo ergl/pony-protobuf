@@ -1,4 +1,3 @@
-use "format"
 use "../../protobuf"
 
 actor Main
@@ -20,13 +19,6 @@ actor Main
       let book2 = create_addressbook(buffer2) ?
       walk_addressbook(env.out, book2)
       env.out.print("Deterministic?: " + array_eq(buffer1, buffer2).string())
-
-      env.out.print("\nOG Buffer:\n")
-      print_buffer_erl(env.out, buffer0)
-      env.out.print("\nReparsed Buffer:\n")
-      print_buffer_erl(env.out, buffer1)
-      env.out.print("\nReparsed Buffer (again):\n")
-      print_buffer_erl(env.out, buffer2)
     else
       env.err.print("Error parsing address book bytes")
     end
@@ -53,35 +45,6 @@ actor Main
       end
     end
     true
-
-  fun print_buffer(out: OutStream, buffer: Array[U8] val, per_line: U32 = 10) =>
-    let descr = recover String.create(buffer.size()) end
-    var line_n: U32 = 0
-    var total_idx: USize = 0
-    for v in buffer.values() do
-      descr.append(Format.int[U8](v where fmt=FormatHex))
-      if (line_n == (per_line - 1)) or (total_idx == (buffer.size() - 1)) then
-        descr.append("\n")
-      else
-        descr.append(";")
-      end
-      line_n = (line_n + 1) % per_line
-      total_idx = total_idx + 1
-    end
-    out.print(consume descr)
-
-  fun print_buffer_erl(out: OutStream, buffer: Array[U8] val) =>
-    let descr = recover String.create(buffer.size() + 4).>append("<<") end
-    var total_idx: USize = 0
-    for v in buffer.values() do
-      descr.append("16#" + Format.int[U8](v where fmt=FormatHexBare))
-      if not (total_idx == (buffer.size() - 1)) then
-        descr.append(",")
-      end
-      total_idx = total_idx + 1
-    end
-    descr.append(">>")
-    out.print(consume descr)
 
   fun walk_addressbook(out: OutStream, book: AddressBook) =>
     try
