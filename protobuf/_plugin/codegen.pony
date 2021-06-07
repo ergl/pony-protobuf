@@ -85,15 +85,19 @@ primitive CodeGen
           try
             descr.package as String
           else
-            // If the proto file doesn't specify a package name,
-            // give it one: the name of the generated proto descriptor
-            // We need a package name to deal with scope search
-            normalized_file
+            ""
           end
 
         // Perform a scope pass on all files (incl. dependencies)
         let local_scope = SymbolScope(package, global_scope)
-        scope_map(package) = local_scope
+        if package == "" then
+          // If the proto file doesn't specify a package name,
+          // give it one: the name of the generated proto descriptor
+          // We want to put unique values into the scope map
+          scope_map(normalized_file) = local_scope
+        else
+          scope_map(package) = local_scope
+        end
 
         // TODO(borja): Figure out package situation
         // Although protoc gives us fully qualified names (i.e.,
