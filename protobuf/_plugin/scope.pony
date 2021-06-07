@@ -1,6 +1,21 @@
 use "debug"
 use "collections"
 
+class SymbolScopeMap
+  let _scopes: Map[String, SymbolScope] = _scopes.create()
+
+  new ref create() => None
+
+  fun apply(name: String): (SymbolScope box | None) =>
+    try
+      _scopes(name)?
+    else
+      None
+    end
+
+  fun ref update(name: String, value: SymbolScope) =>
+    _scopes(name) = value
+
 class SymbolScope
   let _level_prefix: String
   let _parent: (SymbolScope | None)

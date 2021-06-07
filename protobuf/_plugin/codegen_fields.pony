@@ -70,7 +70,7 @@ primitive CodeGenFields
   fun apply(
     writer: CodeGenWriter ref,
     template_ctx: GenTemplate,
-    scope: SymbolScope,
+    scope: SymbolScope box,
     fields: Array[FieldDescriptorProto])
     : Map[String, FieldMeta] val
   =>
@@ -110,7 +110,7 @@ primitive CodeGenFields
   fun _find_field_type(
     field: FieldDescriptorProto,
     field_label: FieldDescriptorProtoLabel,
-    scope: SymbolScope)
+    scope: SymbolScope box)
     : (TagKind, Bool, String, String, String)
     ?
   =>
@@ -181,7 +181,7 @@ primitive CodeGenFields
     end
 
   fun _find_default(
-    scope: SymbolScope,
+    scope: SymbolScope box,
     type_name: String,
     default: String,
     label: FieldDescriptorProtoLabel)

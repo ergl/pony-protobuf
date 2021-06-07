@@ -73,24 +73,34 @@ primitive CodeGen
     // to inspect the dependencies to resolve any name references.
     var offset: USize = 0
     let global_scope = SymbolScope
+    let scope_map = SymbolScopeMap
+    scope_map(".") = global_scope
     while proto_descriptors.size() > 0 do
       try
         let descr = proto_descriptors.shift()?
         // TODO(borja): What can we do about anonymous descriptors?
         let descr_name = descr.name as String
-        let package = match descr.package
-        | let s': String => s'
-        | None => ""
-        end
         let normalized_file = GenNames.proto_file(descr_name)
+        let package =
+          try
+            descr.package as String
+          else
+            // If the proto file doesn't specify a package name,
+            // give it one: the name of the generated proto descriptor
+            // We need a package name to deal with scope search
+            normalized_file
+          end
+
         // Perform a scope pass on all files (incl. dependencies)
         let local_scope = SymbolScope(package, global_scope)
+        scope_map(package) = local_scope
+
         // TODO(borja): Figure out package situation
         // Although protoc gives us fully qualified names (i.e.,
         // .google.protobuf.FileDescriptorProto), we still need
         // to think about how to expose packages to Pony.
         // Do we build folder hierarchies that mimick the proto packages?
-        CodeGenScopePass(descr, local_scope)
+        CodeGenScopePass(descr, scope_map, local_scope)
         if file_name == normalized_file then
           // This isn't a dependency, we reached codegen
           match descr.syntax
@@ -99,7 +109,7 @@ primitive CodeGen
           else
             response_file.content =
               _codegen_proto_descriptor(protoc_version, template_ctx,
-                local_scope, descr)
+                scope_map, descr)
             break
           end
         end
@@ -114,7 +124,7 @@ primitive CodeGen
   fun _codegen_proto_descriptor(
     protoc_version: String,
     template_ctx: GenTemplate,
-    scope: SymbolScope,
+    scope_map: SymbolScopeMap,
     descriptor: FileDescriptorProto)
     : String
   =>
@@ -128,7 +138,7 @@ primitive CodeGen
     CodeGenMessages(
       writer,
       template_ctx,
-      scope,
+      scope_map,
       descriptor.message_type
     )
     writer.done()
