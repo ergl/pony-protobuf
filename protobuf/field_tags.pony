@@ -119,6 +119,47 @@ primitive FieldSize
       _tag_size(field) + raw_varint(data_size.u64()) + data_size
     end
 
+  fun packed_fixed32
+    [T: (I32 | U32 | F32)]
+    (field: U64, arg: Array[T] box)
+    : U32
+  =>
+    let array_size = arg.size()
+    if array_size == 0 then
+      0
+    else
+      let data_size: USize = 4 * array_size
+      _tag_size(field) + raw_varint(data_size.u64()) + data_size.u32()
+    end
+
+  fun packed_fixed64
+    [T: (I64 | U64 | F64)]
+    (field: U64, arg: Array[T] box)
+    : U32
+  =>
+    let array_size = arg.size()
+    if array_size == 0 then
+      0
+    else
+      let data_size: USize = 8 * array_size
+      _tag_size(field) + raw_varint(data_size.u64()) + data_size.u32()
+    end
+
+  fun packed_enum
+    [T: ProtoEnumValue val]
+    (field: U64, arg: Array[T] box)
+    : U32
+  =>
+    if arg.size() == 0 then
+      0
+    else
+      var data_size: U32 = 0
+      for v in arg.values() do
+        data_size = data_size + raw_varint(v.as_i32().u64())
+      end
+      _tag_size(field) + raw_varint(data_size.u64()) + data_size
+    end
+
   fun packed_enum_size(field: U64, arg: Array[ProtoEnumValue] box): U32 =>
     if arg.size() == 0 then
       0
