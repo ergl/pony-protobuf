@@ -29,6 +29,8 @@ class val GenTemplate
   let read_varint: Template
   let read_fixed: Template
   let read_packed_varint: Template
+  let read_packed_fixed: Template
+  let read_packed_enum: Template
   let read_inner_message: Template
   let read_repeated_inner_message: Template
   let read_repeated_bytes: Template
@@ -48,6 +50,7 @@ class val GenTemplate
   let write_repeated_non_message_type: Template
   let write_repeated_inner_message_clause: Template
   let write_packed_varint: Template
+  let write_packed_varint_bool: Template
   let write_optional_clause: Template
 
   new val create() ? =>
@@ -170,7 +173,7 @@ class val GenTemplate
     size_repeated_clause = Template.parse(
       """
       for v in {{name}}.values() do
-            size = size + FieldSize.{{method}}{{if method_type}}[{{method_type}}]{{end}}({{number}}, v)
+            size = size + FieldSize.{{method}}{{if method_type}}[{{method_type}}]{{end}}({{number}}{{if needs_name_arg}}, v{{end}})
           end"""
     )?
 
@@ -219,6 +222,26 @@ class val GenTemplate
               {{name}}.push(v)"""
     )?
 
+    read_packed_fixed = Template.parse(
+      """
+      | ({{number}}, DelimitedField) =>
+              reader.read_packed_fixed_{{fixed_size}}[{{type}}]({{name}})?
+            | ({{number}}, {{wire_type}}) =>
+              let v = reader.read_fixed_{{fixed_size}}_{{fixed_kind}}()?{{if conv_type}}.{{conv_type}}(){{end}}
+              {{name}}.push(v)"""
+    )?
+
+    read_packed_enum = Template.parse(
+      """
+      | ({{number}}, DelimitedField) =>
+              reader.read_packed_enum[{{type}}]({{name}}, {{enum_builder}})?
+            | ({{number}}, {{wire_type}}) =>
+              match {{enum_builder}}.from_i32(reader.read_varint_32()?.i32())
+              | None => None
+              | let v: {{type}} => {{name}}.push(v)
+              end"""
+    )?
+
     read_inner_message = Template.parse(
       """
       | ({{number}}, DelimitedField) =>
@@ -251,7 +274,10 @@ class val GenTemplate
     read_repeated_enum = Template.parse(
       """
       | ({{number}}, {{wire_type}}) =>
-              {{name}}.push({{enum_builder}}.from_i32(reader.read_varint_32()?.i32()))"""
+              match {{enum_builder}}.from_i32(reader.read_varint_32()?.i32())
+              | None => None
+              | let v: {{type}} => {{name}}.push(v)
+              end"""
     )?
 
     read_repeated_varint = Template.parse(
@@ -333,6 +359,19 @@ class val GenTemplate
             var {{field}}_size: U32 = 0
             for v in {{field}}.values() do
               {{field}}_size = {{field}}_size + FieldSize.raw_varint(v.u64())
+            end
+            writer.write_tag({{number}}, DelimitedField)
+            writer.write_packed_varint[{{type}}]({{field}}, {{field}}_size)
+          end"""
+    )?
+
+    // Bad API design on my part :^(
+    write_packed_varint_bool = Template.parse(
+      """
+      if {{field}}.size() != 0 then
+            var {{field}}_size: U32 = 0
+            for v in {{field}}.values() do
+              {{field}}_size = {{field}}_size + FieldSize.raw_varint(if v then 1 else 0 end)
             end
             writer.write_tag({{number}}, DelimitedField)
             writer.write_packed_varint[{{type}}]({{field}}, {{field}}_size)

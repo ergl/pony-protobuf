@@ -97,7 +97,11 @@ class CodeGenWriter
         tpl("field") = field_meta.name
         tpl("number") = field_meta.number
         tpl("type") = field_meta.pony_type_inner
-        template_ctx.write_packed_varint.render(tpl)?
+        if field_meta.pony_type_inner == "Bool" then
+          template_ctx.write_packed_varint_bool.render(tpl)?
+        else
+          template_ctx.write_packed_varint.render(tpl)?
+        end
       else
         // FIXME(borja): Handle more packed values
         error
@@ -128,9 +132,9 @@ class CodeGenWriter
         tpl("type") = field_meta.pony_type_inner
         tpl("method") =
           if field_meta.uses_zigzag then
-             "write_varint"
+            "write_varint_zigzag"
           else
-              "write_varint_zigzag"
+            "write_varint"
           end
       | Fixed32Field =>
         tpl("type") = field_meta.pony_type_inner
@@ -420,12 +424,32 @@ class CodeGenWriter
         end
         template_ctx.read_packed_varint.render(tpl)?
       else
-        // FIXME(borja): Handle more packed values
-        error
+        // We only have packed Fixed32 and Fixed64, since protoc
+        // will discard packed strings and bytes
+        tpl("type") = field_meta.pony_type_inner
+        tpl("fixed_kind") =
+          if
+            (field_meta.pony_type_inner == "F32") or
+            (field_meta.pony_type_inner == "F64") then
+              "float"
+          else
+              "integer"
+          end
+        tpl("fixed_size") =
+          if field_meta.wire_type is Fixed32Field then "32" else "64" end
+        let conv_type = GenTypes.convtype(field_meta.wire_type, false,
+         field_meta.pony_type_inner)
+        match conv_type
+        | None => None
+        | let conv_type': String =>
+          tpl("conv_type") = conv_type'
+        end
+        template_ctx.read_packed_fixed.render(tpl)?
       end
     | EnumType =>
-      // FIXME(borja): Don't know how to read packed enums
-      error
+      tpl("type") = field_meta.pony_type_inner
+      tpl("enum_builder") = GenNames.enum_builder(field_meta.pony_type_inner)
+      template_ctx.read_packed_enum.render(tpl)?
     | MessageType =>
       // In theory, protoc should discard these before it sends us
       // the codegen request, so it should be okay to error here
@@ -484,6 +508,7 @@ class CodeGenWriter
         template_ctx.read_repeated_fixed
       end
     | EnumType =>
+      tpl("type") = field_meta.pony_type_inner
       tpl("enum_builder") = GenNames.enum_builder(field_meta.pony_type_inner)
       template_ctx.read_repeated_enum
     | MessageType =>
@@ -578,6 +603,8 @@ class CodeGenWriter
         clauses.push(
           TemplateValue(_fill_read_clause(meta, template_ctx)?)
         )
+      else
+        Debug.err("failed to fill read clause template for " + meta.name)
       end
     end
     TemplateValue(clauses)
