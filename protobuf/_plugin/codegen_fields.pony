@@ -18,8 +18,8 @@ class val FieldMeta
   let uses_zigzag: Bool
   // The Pony type at the field declaration
   let pony_type_decl: String
-  // The Pony type at "read" / "write" time
-  let pony_type_usage: String
+  // If the Pony type is an Array, this contains the type of the elements
+  let pony_type_inner: String
   let default_assignment: String
   let proto_type: FieldProtoType
   let proto_label: FieldProtoLabel
@@ -29,7 +29,7 @@ class val FieldMeta
     wire_type': TagKind,
     uses_zigzag': Bool,
     pony_type_decl': String,
-    pony_type_usage': String,
+    pony_type_inner': String,
     default_assignment': String,
     proto_type': FieldProtoType,
     proto_label': FieldProtoLabel)
@@ -38,7 +38,7 @@ class val FieldMeta
     wire_type = wire_type'
     uses_zigzag = uses_zigzag'
     pony_type_decl = pony_type_decl'
-    pony_type_usage = pony_type_usage'
+    pony_type_inner = pony_type_inner'
     default_assignment = default_assignment'
     proto_type = proto_type'
     proto_label = proto_label'
@@ -87,7 +87,7 @@ primitive CodeGenFields
           let wire_type,
           let needs_zigzag,
           let pony_type_decl,
-          let pony_type_usage,
+          let pony_type_inner,
           let default
         ) = field_type_tuple
         let proto_label = _get_proto_label(field)
@@ -98,7 +98,7 @@ primitive CodeGenFields
             wire_type' = wire_type,
             uses_zigzag' = needs_zigzag,
             pony_type_decl' = pony_type_decl,
-            pony_type_usage' = pony_type_usage,
+            pony_type_inner' = pony_type_inner,
             default_assignment' = default,
             proto_type' = proto_type,
             proto_label' = proto_label
@@ -147,7 +147,7 @@ primitive CodeGenFields
           let wire_type: TagKind,
           let needs_zigzag: Bool,
           let pony_type_decl: String,
-          let pony_type_usage: String,
+          let pony_type_inner: String,
           let default_value: String
         ) =>
         // Everything went OK
@@ -155,7 +155,7 @@ primitive CodeGenFields
           wire_type,
           needs_zigzag,
           pony_type_decl,
-          pony_type_usage,
+          pony_type_inner,
           default_value
         )
       end

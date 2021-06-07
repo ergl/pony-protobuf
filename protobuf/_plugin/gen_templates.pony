@@ -31,6 +31,11 @@ class val GenTemplate
   let read_packed_varint: Template
   let read_inner_message: Template
   let read_repeated_inner_message: Template
+  let read_repeated_bytes: Template
+  let read_repeated_string: Template
+  let read_repeated_enum: Template
+  let read_repeated_varint: Template
+  let read_repeated_fixed: Template
 
   // write_to_stream
   let write_bytes: Template
@@ -229,6 +234,36 @@ class val GenTemplate
               let v: {{type}} = {{type}}
               v.parse_from_stream(reader.pop_embed()?)?
               {{name}}.push(v)"""
+    )?
+
+    read_repeated_bytes = Template.parse(
+      """
+      | ({{number}}, {{wire_type}}) =>
+              {{name}}.push(reader.read_bytes()?)"""
+    )?
+
+    read_repeated_string = Template.parse(
+      """
+      | ({{number}}, {{wire_type}}) =>
+              {{name}}.push(reader.read_string()?)"""
+    )?
+
+    read_repeated_enum = Template.parse(
+      """
+      | ({{number}}, {{wire_type}}) =>
+              {{name}}.push({{enum_builder}}.from_i32(reader.read_varint_32()?.i32()))"""
+    )?
+
+    read_repeated_varint = Template.parse(
+      """
+      | ({{number}}, {{wire_type}}) =>
+              {{name}}.push(reader.read_varint_{{varint_kind}}()?{{if conv_type}}.{{conv_type}}(){{end}})"""
+    )?
+
+    read_repeated_fixed = Template.parse(
+      """
+      | ({{number}}, {{wire_type}}) =>
+              {{name}}.push(reader.read_fixed_{{fixed_size}}_{{fixed_kind}}()?{{if conv_type}}.{{conv_type}}(){{end}})"""
     )?
 
     write_optional_clause = Template.parse(
