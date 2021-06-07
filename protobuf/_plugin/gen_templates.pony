@@ -22,6 +22,16 @@ class val GenTemplate
   let size_repeated_clause: Template
   let size_packed_clause: Template
 
+  // parse_from_stream
+  let read_bytes: Template
+  let read_string: Template
+  let read_enum: Template
+  let read_varint: Template
+  let read_fixed: Template
+  let read_packed_varint: Template
+  let read_inner_message: Template
+  let read_repeated_inner_message: Template
+
   // write_to_stream
   let write_bytes: Template
   let write_enum: Template
@@ -81,24 +91,24 @@ class val GenTemplate
       """
       class {{name}} is ProtoMessage{{ifnotempty fields}}{{for field in fields}}
         var {{field.name}}: {{field.pony_type}} = {{field.default}}{{end}}{{end}}
-
-        {{ifnotempty field_size_clauses}}fun compute_size(): U32 =>
+        {{ifnotempty field_size_clauses}}
+        fun compute_size(): U32 =>
           var size: U32 = 0{{for clause in field_size_clauses}}
           {{clause}}{{end}}
           size{{end}}
-
-        {{ifnotempty read_clauses}}fun ref parse_from_stream(reader: ProtoReader) ? =>
-          while reader.size() > 0
+        {{ifnotempty read_clauses}}
+        fun ref parse_from_stream(reader: ProtoReader) ? =>
+          while reader.size() > 0 do
             match reader.read_field_tag()?{{for clause in read_clauses}}
             {{clause}}{{end}}
             | (_, let typ: TagKind) => reader.skip_field(typ)?
             end
           end{{end}}
-
-        {{ifnotempty write_clauses}}fun write_to_stream(writer: ProtoWriter) =>{{for clause in write_clauses}}
+        {{ifnotempty write_clauses}}
+        fun write_to_stream(writer: ProtoWriter) =>{{for clause in write_clauses}}
           {{clause}}{{end}}{{end}}
-
-        {{ifnotempty initializer_clauses}}fun is_initialized(): Bool =>{{for clause in initializer_clauses}}
+        {{ifnotempty initializer_clauses}}
+        fun is_initialized(): Bool =>{{for clause in initializer_clauses}}
           {{clause}}{{end}}
           true{{end}}
 
@@ -163,6 +173,62 @@ class val GenTemplate
       """
       size = size + FieldSize.{{method}}{{if method_type}}[{{method_type}}]{{end}}({{number}}, {{name}})
       """
+    )?
+
+    read_bytes = Template.parse(
+      """
+      | ({{number}}, {{wire_type}}) =>
+              {{name}} = reader.read_bytes()?"""
+    )?
+
+    read_string = Template.parse(
+      """
+      | ({{number}}, {{wire_type}}) =>
+              {{name}} = reader.read_string()?"""
+    )?
+
+    read_enum = Template.parse(
+      """
+      | ({{number}}, {{wire_type}}) =>
+              {{name}} = {{enum_builder}}.from_i32(reader.read_varint_32()?.i32())"""
+    )?
+
+    read_varint = Template.parse(
+      """
+      | ({{number}}, {{wire_type}}) =>
+              {{name}} = reader.read_varint_{{varint_kind}}()?{{if conv_type}}.{{conv_type}}(){{end}}"""
+    )?
+
+    read_fixed = Template.parse(
+      """
+      | ({{number}}, {{wire_type}}) =>
+              {{name}} = reader.read_fixed_{{fixed_size}}_{{fixed_kind}}()?{{if conv_type}}.{{conv_type}}(){{end}}"""
+    )?
+
+    read_packed_varint = Template.parse(
+      """
+      | ({{number}}, DelimitedField) =>
+              reader.read_packed_varint{{if needs_zigzag}}_zigzag{{end}}[{{type}}]({{name}})?
+            | ({{number}}, {{wire_type}}) =>
+              let v = reader.read_varint_{{varint_kind}}()?{{if conv_type}}.{{conv_type}}(){{end}}
+              {{name}}.push(v)"""
+    )?
+
+    read_inner_message = Template.parse(
+      """
+      | ({{number}}, DelimitedField) =>
+              // TODO: Maybe call parse_from_stream on the field, don't allocate again
+              let v: {{type}} = {{type}}
+              v.parse_from_stream(reader.pop_embed()?)?
+              {{name}} = v"""
+    )?
+
+    read_repeated_inner_message = Template.parse(
+      """
+      | ({{number}}, DelimitedField) =>
+              let v: {{type}} = {{type}}
+              v.parse_from_stream(reader.pop_embed()?)?
+              {{name}}.push(v)"""
     )?
 
     write_optional_clause = Template.parse(

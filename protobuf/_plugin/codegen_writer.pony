@@ -398,6 +398,165 @@ class CodeGenWriter
     end
     TemplateValue(clauses)
 
+  fun _fill_read_clause_packed(
+    field_name: String,
+    field_meta: FieldMeta,
+    template_ctx: GenTemplate)
+    : String
+    ?
+  =>
+    let tpl = TemplateValues
+    tpl("name") = field_name
+    tpl("number") = field_meta.number
+    tpl("wire_type") = field_meta.wire_type.string()
+    match field_meta.proto_type
+    | PrimitiveType =>
+      match field_meta.wire_type
+      | VarintField =>
+        tpl("type") = field_meta.pony_type_usage
+        if field_meta.uses_zigzag then
+          tpl("needs_zigzag") = ""
+        end
+        // This is for the default case where data arrives unpacked
+        tpl("varint_kind") = GenTypes.varint_kind(field_meta.uses_zigzag,
+          field_meta.pony_type_usage)
+        let conv_type = GenTypes.convtype(VarintField, field_meta.uses_zigzag,
+          field_meta.pony_type_usage)
+        match conv_type
+        | None => None
+        | let conv_type': String =>
+          tpl("conv_type") = conv_type'
+        end
+        template_ctx.read_packed_varint.render(tpl)?
+      else
+        // FIXME(borja): Handle more packed values
+        error
+      end
+    | EnumType =>
+      // FIXME(borja): Don't know how to read packed enums
+      error
+    | MessageType =>
+      // In theory, protoc should discard these before it sends us
+      // the codegen request, so it should be okay to error here
+      error
+    end
+
+  fun _fill_read_clause_repeated(
+    field_name: String,
+    field_meta: FieldMeta,
+    template_ctx: GenTemplate)
+    : String
+    ?
+  =>
+    let tpl = TemplateValues
+    tpl("name") = field_name
+    tpl("number") = field_meta.number
+    tpl("wire_type") = field_meta.wire_type.string()
+    let template = match field_meta.proto_type
+    | MessageType =>
+      tpl("type") = field_meta.pony_type_usage
+      template_ctx.read_repeated_inner_message
+    | EnumType =>
+      // TODO
+      error
+    | PrimitiveType =>
+      // TODO
+      error
+    end
+    template.render(tpl)?
+
+  fun _fill_read_clause_optional(
+    field_name: String,
+    field_meta: FieldMeta,
+    template_ctx: GenTemplate)
+    : String
+    ?
+  =>
+    let tpl = TemplateValues
+    tpl("name") = field_name
+    tpl("number") = field_meta.number
+    tpl("wire_type") = field_meta.wire_type.string()
+    let template = match field_meta.proto_type
+    | MessageType =>
+      tpl("type") = field_meta.pony_type_usage
+      template_ctx.read_inner_message
+    | EnumType =>
+      tpl("enum_builder") = "" // FIXME(borja): Get builder name
+      template_ctx.read_enum
+    | PrimitiveType =>
+      match field_meta.wire_type
+      | DelimitedField =>
+        if field_meta.pony_type_usage == "Array[U8]" then
+          template_ctx.read_bytes
+        else
+          template_ctx.read_string
+        end
+      | VarintField =>
+        tpl("varint_kind") = GenTypes.varint_kind(field_meta.uses_zigzag,
+          field_meta.pony_type_usage)
+        let conv_type = GenTypes.convtype(VarintField, field_meta.uses_zigzag,
+          field_meta.pony_type_usage)
+        match conv_type
+        | None => None
+        | let conv_type': String =>
+          tpl("conv_type") = conv_type'
+        end
+        template_ctx.read_varint
+      else
+        tpl("fixed_kind") =
+          if
+            (field_meta.pony_type_usage == "F32") or
+            (field_meta.pony_type_usage == "F64") then
+              "float"
+          else
+              "integer"
+          end
+        tpl("fixed_size") =
+          if field_meta.wire_type is Fixed32Field then "32" else "64" end
+        // Do we need a cast between types?
+        let conv_type = GenTypes.convtype(field_meta.wire_type, false,
+         field_meta.pony_type_usage)
+        match conv_type
+        | None => None
+        | let conv_type': String =>
+          tpl("conv_type") = conv_type'
+        end
+        template_ctx.read_fixed
+      end
+    end
+    template.render(tpl)?
+
+  fun _fill_read_clause(
+    field_name: String,
+    field_meta: FieldMeta,
+    template_ctx: GenTemplate)
+    : String
+    ?
+  =>
+    match field_meta.proto_label
+    | RepeatedPacked =>
+      _fill_read_clause_packed(field_name, field_meta, template_ctx)?
+    | Repeated =>
+      _fill_read_clause_repeated(field_name, field_meta, template_ctx)?
+    else
+      _fill_read_clause_optional(field_name, field_meta, template_ctx)?
+    end
+
+  fun _fill_read_clauses(
+    field_info: Map[String, FieldMeta] box,
+    template_ctx: GenTemplate)
+    : TemplateValue
+  =>
+    let clauses = Array[TemplateValue]
+    for (name, meta) in field_info.pairs() do
+      try
+        clauses.push(
+          TemplateValue(_fill_read_clause(name, meta, template_ctx)?)
+        )
+      end
+    end
+    TemplateValue(clauses)
+
   fun ref write_message(
     message_name: String,
     field_info: Map[String, FieldMeta] box,
@@ -410,8 +569,8 @@ class CodeGenWriter
       template_ctx)
     message_structure("field_size_clauses") = _fill_size_clauses(field_info,
       template_ctx)
-    message_structure("read_clauses") =
-      TemplateValue(Array[TemplateValue])
+    message_structure("read_clauses") = _fill_read_clauses(field_info,
+      template_ctx)
     message_structure("write_clauses") = _fill_write_clauses(field_info,
       template_ctx)
     try

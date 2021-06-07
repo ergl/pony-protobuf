@@ -115,6 +115,58 @@ primitive GenTypes
       )
     end
 
+  fun varint_kind(
+    is_zigzag: Bool,
+    pony_type_decl: String)
+    : String
+  =>
+    if pony_type_decl == "U64" then
+      "64"
+    elseif pony_type_decl == "I64" then
+      if is_zigzag then "zigzag_64" else "64" end
+    elseif pony_type_decl == "U32" then
+      "32"
+    elseif pony_type_decl == "I32" then
+      if is_zigzag then "zigzag_32" else "32" end
+    else
+      // Only bool left, since enums are handled somewhere else
+      "bool"
+    end
+
+  fun convtype(
+    wire_type: TagKind,
+    is_zigzag: Bool,
+    pony_type_decl: String)
+    : (String | None)
+  =>
+    match wire_type
+    | VarintField =>
+      if pony_type_decl == "U64" then
+        None
+      elseif pony_type_decl == "I64" then
+        if is_zigzag then None else "u64" end
+      elseif pony_type_decl == "U32" then
+        None
+      elseif pony_type_decl == "I32" then
+        if is_zigzag then None else "i32" end
+      end
+    | Fixed32Field =>
+      if pony_type_decl == "I32" then
+        "i32"
+      else
+        None
+      end
+    | Fixed64Field =>
+      if pony_type_decl == "I64" then
+        "i64"
+      else
+        None
+      end
+    else
+      // Delimited types don't need a convtype
+      None
+    end
+
   fun label_of(
     typ: String,
     label: FieldDescriptorProtoLabel)
