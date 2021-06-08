@@ -126,14 +126,9 @@ primitive CodeGenFields
     ?
   =>
 
-    let default_value_str = match field.default_value
-    | let default_value': String => default_value'
-    | None => "None"
-    end
-
     match field.field_type
     | let field_type: FieldDescriptorProtoType =>
-      match GenTypes.typeof(field_type, field_label, default_value_str)
+      match GenTypes.typeof(field_type, field_label, field.default_value)
       | (let wire_type: TagKind, let needs_zigzag: Bool) =>
         // We couldn't decipher the type, it's possible that it's a
         // message or enum type.
@@ -149,7 +144,7 @@ primitive CodeGenFields
           _find_default(
             scope,
             field.type_name as String,
-            default_value_str,
+            field.default_value,
             field_label
           )?
         )
@@ -185,7 +180,7 @@ primitive CodeGenFields
         _find_default(
           scope,
           field.type_name as String,
-          default_value_str,
+          field.default_value,
           field_label
         )?
       )
@@ -194,24 +189,16 @@ primitive CodeGenFields
   fun _find_default(
     scope: SymbolScope box,
     type_name: String,
-    default: String,
+    default: (String | None),
     label: FieldDescriptorProtoLabel)
     : String
     ?
   =>
-    let has_default = default != "None"
-    if
-      (not has_default) and
-      (label isnt FieldDescriptorProtoLabelLABELREPEATED)
-    then
-      return "None"
+    match default
+    | None if label isnt FieldDescriptorProtoLabelLABELREPEATED =>
+      "None"
+    | None =>
+      GenTypes.default_value(scope(type_name) as String, label)
+    | let str: String =>
+      GenTypes.default_value(scope(str) as String, label)
     end
-
-    GenTypes.default_value(
-      if has_default then
-        scope(default) as String
-      else
-        scope(type_name) as String
-      end,
-      label
-    )
