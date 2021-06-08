@@ -33,12 +33,15 @@ endif
 # overridden version *should not* contain spaces or characters that aren't
 # legal in filesystem path names
 ifndef version
+	version := $(shell cat VERSION)
 	ifneq ($(wildcard .git),)
-		tag := $(shell git rev-parse --short HEAD)
+		sha := $(shell git rev-parse --short HEAD)
+		tag := $(version)-$(sha)
 	else
-		$(error No possible version selected)
+		tag := $(version)
 	endif
 else
+	foo := $(shell touch VERSION)
 	tag := $(version)
 endif
 
@@ -79,6 +82,7 @@ clean:
 	$(CLEAN_DEPENDENCIES_WITH)
 	rm -rf $(BUILD_DIR)
 	rm -rf $(plugin_dir)
+	rm -rf $(PROTOC_PLUGIN_SRC)/version.pony
 
 $(docs_dir): $(GEN_FILES) $(SOURCE_FILES)
 	rm -rf $(docs_dir)
