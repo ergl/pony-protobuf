@@ -58,36 +58,33 @@ primitive GenTypes
 
   fun _default_for_type_label(
     pony_type_decl: String,
-    default: String,
+    default: (String | None),
     typ_info: FieldDescriptorProtoType,
     label: FieldDescriptorProtoLabel)
     : String
   =>
-    if default == "None" then
-      // Here, we should distinguish between repeated values and optional
-      // If it's optional, return "None". If repeated, use
-      // pony_type_decl
-      match label
-      | FieldDescriptorProtoLabelLABELREPEATED => pony_type_decl
-      else
-        "None"
-      end
-    else
-      match typ_info
-      | FieldDescriptorProtoTypeTYPEBYTES =>
+    match default
+    | String if typ_info is FieldDescriptorProtoTypeTYPEBYTES =>
         // Proto default is a string that represents C-escaped values
         // TODO(borja): Figure how to de-escape default bytes
         // Check https://github.com/golang/protobuf/pull/427
         "Array[U8]"
-      else
-        default
-      end
+
+    | let str: String if typ_info is FieldDescriptorProtoTypeTYPESTRING =>
+        // Quote default
+        "\"" + str + "\""
+
+    | let str: String => str
+
+    | None if label is FieldDescriptorProtoLabelLABELREPEATED => pony_type_decl
+
+    | None => "None"
     end
 
   fun typeof(
     typ: FieldDescriptorProtoType,
     label: FieldDescriptorProtoLabel,
-    typ_default_value_str: String)
+    typ_default_value: (String | None))
     : ((TagKind, Bool) | (TagKind, Bool, String, String, String))
   =>
     """
@@ -110,7 +107,7 @@ primitive GenTypes
         pony_type,
         pony_inner_type,
         _default_for_type_label(
-          pony_type, typ_default_value_str, typ, label
+          pony_type, typ_default_value, typ, label
         )
       )
     end
