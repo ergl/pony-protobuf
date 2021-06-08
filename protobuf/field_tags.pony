@@ -160,17 +160,6 @@ primitive FieldSize
       _tag_size(field) + raw_varint(data_size.u64()) + data_size
     end
 
-  fun packed_enum_size(field: U64, arg: Array[ProtoEnumValue] box): U32 =>
-    if arg.size() == 0 then
-      0
-    else
-      var data_size: U32 = 0
-      for v in arg.values() do
-        data_size = data_size + raw_varint(v.as_i32().u64())
-      end
-      _tag_size(field) + raw_varint(data_size.u64()) + data_size
-    end
-
   fun _tag_size(field: U64): U32 => raw_varint((field << 3))
 
   // From
