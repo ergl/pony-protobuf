@@ -11,17 +11,19 @@ primitive CodeGenEnums
     for enum in enums.values() do
       try
         let proto_name = enum.name as String
-        let name = GenNames.proto_enum(proto_name.clone())
+        let enum_name = GenNames.top_level_name(proto_name.clone(), prefix)
         for field in enum.value.values() do
           let proto_field_name = field.name as String
-          let field_name = GenNames.proto_enum(proto_field_name.clone())
-          let pony_primitive_name: String = prefix + name + field_name
+          let enum_field_name = GenNames.top_level_name(
+            proto_field_name.clone(),
+            enum_name
+          )
           field_acc.push((
-            pony_primitive_name,
+            enum_field_name,
             field.number as I32
           ))
         end
-        writer.write_enum(prefix + name, field_acc, template_ctx)
+        writer.write_enum(enum_name, field_acc, template_ctx)
       end
       field_acc.clear()
     end
