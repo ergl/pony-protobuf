@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file. This projec
 ### Fixed
 
 - Fix incorrect unquoting of default string values ([PR #14](https://github.com/ergl/pony-protobuf/pull/14))
+- Fix capitalization in generated code ([PR #15](https://github.com/ergl/pony-protobuf/pull/15))
 
 ### Added
 
