@@ -29,7 +29,7 @@ class CodeGenWriter
     enum_alias("name") = enum_name
 
     let enum_builder = TemplateValues
-    enum_builder("name") = GenNames.proto_enum(enum_name + "Builder")
+    enum_builder("name") = GenNames.top_level_name(enum_name + "Builder")
     enum_builder("enum_type") = enum_name
 
     var is_first = true

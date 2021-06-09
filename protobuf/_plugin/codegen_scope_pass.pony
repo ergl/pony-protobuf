@@ -18,7 +18,7 @@ primitive CodeGenScopePass
     for enum in enums.values() do
       try
         let proto_name = enum.name as String
-        let name = GenNames.proto_enum(proto_name.clone())
+        let enum_name = GenNames.top_level_name(proto_name.clone(), prefix)
         // This is an artifial scope, we're not interested in finding it
         // later, but we want the prefixing capabilities when adding to it,
         // such that the changes are propagated upwards as we append
@@ -26,8 +26,10 @@ primitive CodeGenScopePass
         let local_scope = SymbolScope(proto_name, scope)
         for field in enum.value.values() do
           let proto_field_name = field.name as String
-          let field_name = GenNames.proto_enum(proto_field_name.clone())
-          let pony_primitive_name: String = prefix + name + field_name
+          let enum_field_name = GenNames.top_level_name(
+            proto_field_name.clone(),
+            enum_name
+          )
           // Enums have weird scoping rules. If we have the following:
           //
           // enum Enum {
@@ -48,11 +50,11 @@ primitive CodeGenScopePass
           // propagated upwards as "Enum.FOO", and the next one will add
           // "FOO" to the parent scope, but will not allow us to refer to the
           // enum field as "Parent.FOO", since that's not correct.
-          local_scope(proto_field_name) = pony_primitive_name
-          scope.local_insert(proto_field_name, pony_primitive_name)
+          local_scope(proto_field_name) = enum_field_name
+          scope.local_insert(proto_field_name, enum_field_name)
         end
         // Only let the fully-qualified scope name be visible to outer scopes
-        scope(proto_name) = prefix + name
+        scope(proto_name) = enum_name
       end
     end
 
@@ -71,13 +73,13 @@ primitive CodeGenScopePass
     for message in messages.values() do
       try
         let proto_name = message.name as String
-        let name = GenNames.proto_enum(prefix + proto_name)
-        outer_scope(proto_name) = name
+        let message_name = GenNames.top_level_name(proto_name.clone(), prefix)
+        outer_scope(proto_name) = message_name
 
         let local_scope = SymbolScope(proto_name, outer_scope)
-        scope_map(name) = local_scope
-        _scope_enums(message.enum_type, local_scope, name)
-        _scope_messages(message.nested_type, scope_map, local_scope, name,
-          recursion_level + 1)
+        scope_map(message_name) = local_scope
+        _scope_enums(message.enum_type, local_scope, message_name)
+        _scope_messages(message.nested_type, scope_map, local_scope,
+          message_name, recursion_level + 1)
       end
     end
