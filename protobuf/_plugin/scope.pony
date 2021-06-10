@@ -28,29 +28,22 @@ class SymbolScope
     _parent = parent'
     _level_prefix = scope_prefix'
 
-  fun apply(name: String): (String | None) =>
-    // Debug.err("scope query for " + name )
+  fun apply(name: String): String ? =>
     try
-      let res = _definitions(name)?
-      // Debug.err("resulting in " + res)
-      res
+      _definitions(name)?
     else
-      // If parent is None this will return None
-      try (_parent as this->SymbolScope)(name) end
+      (_parent as this->SymbolScope)(name)?
     end
 
   fun ref update(name: String, value: String) =>
-    // Debug.err("scope insert " + name + ": " + value)
     _definitions(name) = value
     let parent_scoped: String = _level_prefix + "." + name
     match _parent
     | let parent: SymbolScope => parent(parent_scoped) = value
     | None =>
       // We're the top scope, add with level prefix
-      // Debug.err("scope insert " + parent_scoped + ": " + value)
       _definitions(parent_scoped) = value
     end
 
   fun ref local_insert(name: String, value: String) =>
-    // Debug.err("local scope insert " + name + ": " + value)
     _definitions(name) = value

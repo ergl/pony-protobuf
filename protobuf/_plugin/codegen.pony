@@ -1,5 +1,4 @@
 use ".."
-use "debug" // TODO(borja): remove
 
 primitive CodeGen
   fun recursion_limit(): USize => 100
@@ -77,44 +76,36 @@ primitive CodeGen
     scope_map(".") = global_scope
     while proto_descriptors.size() > 0 do
       try
-        let descr = proto_descriptors.shift()?
-        // TODO(borja): What can we do about anonymous descriptors?
-        let descr_name = descr.name as String
-        let normalized_file = GenNames.proto_file(descr_name)
-        let package =
-          try
-            descr.package as String
+        let raw_descriptor = proto_descriptors.shift()?
+
+        // Perform preliminary soundness checks, prepare everything for
+        // future passes
+        let check_result = CodeGenCheckPass(file_name, raw_descriptor)
+        match check_result
+        | (Error, let error_reason: String) => return error_reason
+        | (Ok, let valid_descriptor: ValidFileDescriptorProto) =>
+          let local_scope = SymbolScope(valid_descriptor.package, global_scope)
+          if valid_descriptor.package == "" then
+            scope_map(valid_descriptor.name) = local_scope
           else
-            ""
+            scope_map(valid_descriptor.package) = local_scope
           end
-
-        // Perform a scope pass on all files (incl. dependencies)
-        let local_scope = SymbolScope(package, global_scope)
-        if package == "" then
-          // If the proto file doesn't specify a package name,
-          // give it one: the name of the generated proto descriptor
-          // We want to put unique values into the scope map
-          scope_map(normalized_file) = local_scope
-        else
-          scope_map(package) = local_scope
-        end
-
-        // TODO(borja): Figure out package situation
-        // Although protoc gives us fully qualified names (i.e.,
-        // .google.protobuf.FileDescriptorProto), we still need
-        // to think about how to expose packages to Pony.
-        // Do we build folder hierarchies that mimick the proto packages?
-        CodeGenScopePass(descr, scope_map, local_scope)
-        if file_name == normalized_file then
-          // This isn't a dependency, we reached codegen
-          match descr.syntax
-          | "proto3" =>
-            return "pony-protobuf only supports proto2 files"
-          else
-            response_file.content =
-              _codegen_proto_descriptor(protoc_version, template_ctx,
-                scope_map, descr)
-            break
+          // TODO(borja): Figure out package situation
+          // Although protoc gives us fully qualified names (i.e.,
+          // .google.protobuf.FileDescriptorProto), we still need
+          // to think about how to expose packages to Pony.
+          // Do we build folder hierarchies that mimick the proto packages?
+          CodeGenScopePass(valid_descriptor, scope_map, local_scope)
+          if file_name == valid_descriptor.name then
+            // This isn't a dependency, we reached codegen
+            let codegen_result = _codegen_proto_descriptor(protoc_version,
+              template_ctx, scope_map, valid_descriptor)
+            match codegen_result
+            | (Error, let reason: String) =>
+              return reason
+            | (Ok, let contents: String) =>
+              response_file.content = contents
+            end
           end
         end
       else
@@ -129,20 +120,23 @@ primitive CodeGen
     protoc_version: String,
     template_ctx: GenTemplate,
     scope_map: SymbolScopeMap,
-    descriptor: FileDescriptorProto)
-    : String
+    descriptor: ValidFileDescriptorProto)
+    : Result[String, String]
   =>
     let writer = CodeGenWriter
     writer.write_header(protoc_version, template_ctx)
     CodeGenEnums(
       writer,
       template_ctx,
-      descriptor.enum_type
+      descriptor.enums
     )
-    CodeGenMessages(
+    let gen_res = CodeGenMessages(
       writer,
       template_ctx,
       scope_map,
-      descriptor.message_type
+      descriptor.messages
     )
-    writer.done()
+    match gen_res
+    | let str: String => (Error, str)
+    | None => writer.done()
+    end
