@@ -48,12 +48,12 @@ primitive CodeGen
         | let gen: CodeGeneratorResponseFile =>
           resp.file.push(gen)
         | let error_reason: String =>
-          resp.field_error = error_reason
+          resp.error_field = error_reason
           break
         end
       end
     else
-      resp.field_error =
+      resp.error_field =
         "pony-protobuf encountered an internal error during template parsing"
     end
     resp
