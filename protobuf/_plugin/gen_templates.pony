@@ -248,11 +248,12 @@ class val GenTemplate
     read_inner_message = Template.parse(
       """
       | ({{number}}, DelimitedField) =>
-              let v = match {{name}}
-              | None => {{type}}
-              | let {{name}}': {{type}} => {{name}}'
-              end
-              v.parse_from_stream(reader.pop_embed()?)?"""
+              match {{name}}
+              | None =>
+                {{name}} = {{type}}.>parse_from_stream(reader.pop_embed()?)?
+              | let {{name}}': {{type}} =>
+                {{name}}'.parse_from_stream(reader.pop_embed()?)?
+              end"""
     )?
 
     read_repeated_inner_message = Template.parse(
