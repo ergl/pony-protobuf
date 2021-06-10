@@ -69,7 +69,7 @@ primitive CodeGenFields
     end
 
   fun _get_proto_type(field: FieldDescriptorProto): FieldProtoType =>
-    match field.field_type
+    match field.type_field
     | FieldDescriptorProtoTypeTYPEMESSAGE => MessageType
     | FieldDescriptorProtoTypeTYPEENUM => EnumType
     else
@@ -126,7 +126,7 @@ primitive CodeGenFields
     ?
   =>
 
-    match field.field_type
+    match field.type_field
     | let field_type: FieldDescriptorProtoType =>
       match GenTypes.typeof(field_type, field_label, field.default_value)
       | (let wire_type: TagKind, let needs_zigzag: Bool) =>
