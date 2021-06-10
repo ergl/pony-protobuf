@@ -646,6 +646,7 @@ class CodeGenWriter
       Debug.err("failed to fill template for " + message_name)
     end
 
-  fun ref done(): String val =>
+  // TODO(borja): Track errors, return if anything happened when writing
+  fun ref done(): Result[String, String] =>
     let to_ret = _str = recover String end
-    consume to_ret
+    (Ok, consume to_ret)

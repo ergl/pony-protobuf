@@ -1,76 +1,101 @@
 use ".."
 
+primitive BoolFieldType
+primitive I32FieldType
+primitive U32FieldType
+primitive I64FieldType
+primitive U64FieldType
+primitive I32ZigZagFieldType
+primitive I64ZigZagFieldType
+primitive F32FieldType
+primitive F64FieldType
+primitive FixedI32FieldType
+primitive FixedI64FieldType
+primitive FixedU32FieldType
+primitive FixedU64FieldType
+primitive StringFieldType
+primitive BytesFieldType
+
+// Types that are directly translatable to Pony
+type AllowedProtoTypes is (
+  BoolFieldType
+  | I32FieldType
+  | U32FieldType
+  | I64FieldType
+  | U64FieldType
+  | I32ZigZagFieldType
+  | I64ZigZagFieldType
+  | F32FieldType
+  | F64FieldType
+  | FixedI32FieldType
+  | FixedI64FieldType
+  | FixedU32FieldType
+  | FixedU64FieldType
+  | StringFieldType
+  | BytesFieldType
+)
+
 primitive GenTypes
   fun _proto_type_to_tag_kind(
-    typ: FieldDescriptorProtoType)
+    typ: AllowedProtoTypes)
     : (TagKind, Bool)
   =>
     match typ
-    | FieldDescriptorProtoTypeTYPEDOUBLE => (Fixed64Field, false)
-    | FieldDescriptorProtoTypeTYPEFLOAT => (Fixed32Field, false)
-    | FieldDescriptorProtoTypeTYPEINT64 => (VarintField, false)
-    | FieldDescriptorProtoTypeTYPEUINT64 => (VarintField, false)
-    | FieldDescriptorProtoTypeTYPEINT32 => (VarintField, false)
-    | FieldDescriptorProtoTypeTYPEFIXED32 => (Fixed32Field, false)
-    | FieldDescriptorProtoTypeTYPEFIXED64 => (Fixed64Field, false)
-    | FieldDescriptorProtoTypeTYPEBOOL => (VarintField, false)
-    | FieldDescriptorProtoTypeTYPESTRING => (DelimitedField, false)
-    | FieldDescriptorProtoTypeTYPEMESSAGE => (DelimitedField, false)
-    | FieldDescriptorProtoTypeTYPEBYTES => (DelimitedField, false)
-    | FieldDescriptorProtoTypeTYPEUINT32 => (VarintField, false)
-    | FieldDescriptorProtoTypeTYPEENUM => (VarintField, false)
-    | FieldDescriptorProtoTypeTYPESFIXED32 => (Fixed32Field, false)
-    | FieldDescriptorProtoTypeTYPESFIXED64 => (Fixed64Field, false)
-    | FieldDescriptorProtoTypeTYPESINT32 => (VarintField, true)
-    | FieldDescriptorProtoTypeTYPESINT64 => (VarintField, true)
-    else
-      // Group type?
-      (DelimitedField, false)
+    | BoolFieldType => (VarintField, false)
+    | I32FieldType => (VarintField, false)
+    | U32FieldType => (VarintField, false)
+    | I64FieldType => (VarintField, false)
+    | U64FieldType => (VarintField, false)
+    | I32ZigZagFieldType => (VarintField, true)
+    | I64ZigZagFieldType => (VarintField, true)
+    | F32FieldType => (Fixed32Field, false)
+    | F64FieldType => (Fixed64Field, false)
+    | FixedI32FieldType => (Fixed32Field, false)
+    | FixedI64FieldType => (Fixed64Field, false)
+    | FixedU32FieldType => (Fixed32Field, false)
+    | FixedU64FieldType => (Fixed64Field, false)
+    | StringFieldType => (DelimitedField, false)
+    | BytesFieldType => (DelimitedField, false)
     end
 
   fun _proto_type_to_pony_type(
-    typ: FieldDescriptorProtoType,
+    typ: AllowedProtoTypes,
     label: FieldDescriptorProtoLabel)
-    : ((String, String) | None)
+    : (String, String)
   =>
     match typ
-    | FieldDescriptorProtoTypeTYPEDOUBLE => label_of("F64", label)
-    | FieldDescriptorProtoTypeTYPEFLOAT => label_of("F32", label)
-    | FieldDescriptorProtoTypeTYPEINT64 => label_of("I64", label)
-    | FieldDescriptorProtoTypeTYPEUINT64 => label_of("U64", label)
-    | FieldDescriptorProtoTypeTYPEINT32 => label_of("I32", label)
-    | FieldDescriptorProtoTypeTYPEFIXED32 => label_of("U32", label)
-    | FieldDescriptorProtoTypeTYPEFIXED64 => label_of("U64", label)
-    | FieldDescriptorProtoTypeTYPEBOOL => label_of("Bool", label)
-    | FieldDescriptorProtoTypeTYPESTRING => label_of("String", label)
-    | FieldDescriptorProtoTypeTYPEMESSAGE => None // Caller needs to check scope
-    | FieldDescriptorProtoTypeTYPEBYTES => label_of("Array[U8]", label)
-    | FieldDescriptorProtoTypeTYPEUINT32 => label_of("U32", label)
-    | FieldDescriptorProtoTypeTYPEENUM => None // Caller needs to check scope
-    | FieldDescriptorProtoTypeTYPESFIXED32 => label_of("I32", label)
-    | FieldDescriptorProtoTypeTYPESFIXED64 => label_of("I64", label)
-    | FieldDescriptorProtoTypeTYPESINT32 => label_of("I32", label)
-    | FieldDescriptorProtoTypeTYPESINT64 => label_of("I64", label)
-    else
-      // Group type?
-      None
+    | BoolFieldType => label_of("Bool", label)
+    | I32FieldType => label_of("I32", label)
+    | U32FieldType => label_of("U32", label)
+    | I64FieldType => label_of("I64", label)
+    | U64FieldType => label_of("U64", label)
+    | I32ZigZagFieldType => label_of("I32", label)
+    | I64ZigZagFieldType => label_of("I64", label)
+    | F32FieldType => label_of("F32", label)
+    | F64FieldType => label_of("F64", label)
+    | FixedI32FieldType => label_of("I32", label)
+    | FixedI64FieldType => label_of("I64", label)
+    | FixedU32FieldType => label_of("U32", label)
+    | FixedU64FieldType => label_of("U64", label)
+    | StringFieldType => label_of("String", label)
+    | BytesFieldType => label_of("Array[U8]", label)
     end
 
   fun _default_for_type_label(
     pony_type_decl: String,
     default: (String | None),
-    typ_info: FieldDescriptorProtoType,
+    typ_info: AllowedProtoTypes,
     label: FieldDescriptorProtoLabel)
     : String
   =>
     match default
-    | String if typ_info is FieldDescriptorProtoTypeTYPEBYTES =>
+    | String if typ_info is BytesFieldType =>
         // Proto default is a string that represents C-escaped values
         // TODO(borja): Figure how to de-escape default bytes
         // Check https://github.com/golang/protobuf/pull/427
         "Array[U8]"
 
-    | let str: String if typ_info is FieldDescriptorProtoTypeTYPESTRING =>
+    | let str: String if typ_info is StringFieldType =>
         // Quote default
         "\"" + str + "\""
 
@@ -82,35 +107,34 @@ primitive GenTypes
     end
 
   fun typeof(
-    typ: FieldDescriptorProtoType,
+    typ: AllowedProtoTypes,
     label: FieldDescriptorProtoLabel,
     typ_default_value: (String | None))
-    : ((TagKind, Bool) | (TagKind, Bool, String, String, String))
+    : (TagKind, Bool, String, String, String)
   =>
     """
-    Returns the tag kind if the type needs zigzag encoding. Optionally, it also
-    returns the type of the field, and the type of indicated in the proto file.
+    Returns the wire type, if the type needs zigzag encoding, the translated
+    Pony type used for the variable definition, the inner type (if the Pony
+    type is an array, the type of the elements), and the default value to
+    assign to the field.
+
     That is, for optional fields,  the type is "( Type | None )", and the
     other type is "Type". For repeated types, the types are "Array[Type]" and
     "Type", respectively.
-
-    If only the tag is returned, caller needs to check SymbolScope.
     """
 
     (let tag_kind, let uses_zigzag) = _proto_type_to_tag_kind(typ)
-    match _proto_type_to_pony_type(typ, label)
-    | None => (tag_kind, uses_zigzag)
-    | (let pony_type: String, let pony_inner_type: String) =>
-      (
-        tag_kind,
-        uses_zigzag,
-        pony_type,
-        pony_inner_type,
-        _default_for_type_label(
-          pony_type, typ_default_value, typ, label
-        )
+    (let pony_type: String, let pony_inner_type) =
+      _proto_type_to_pony_type(typ, label)
+    (
+      tag_kind,
+      uses_zigzag,
+      pony_type,
+      pony_inner_type,
+      _default_for_type_label(
+        pony_type, typ_default_value, typ, label
       )
-    end
+    )
 
   fun varint_kind(
     is_zigzag: Bool,

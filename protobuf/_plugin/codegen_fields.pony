@@ -53,25 +53,23 @@ class val FieldMeta is Comparable[FieldMeta]
   fun lt(other: FieldMeta box): Bool => _number < other._number
 
 primitive CodeGenFields
-  fun _get_proto_label(field: FieldDescriptorProto): FieldProtoLabel =>
+  fun _get_proto_label(field: ValidFieldDescriptorProto): FieldProtoLabel =>
     match field.label
     | FieldDescriptorProtoLabelLABELREQUIRED => Required
     | FieldDescriptorProtoLabelLABELREPEATED =>
-      try
-        let is_packed = (field.options as FieldOptions).packed as Bool
-        if is_packed then
-          return RepeatedPacked
-        end
+      if field.is_packed then
+        RepeatedPacked
+      else
+        Repeated
       end
-      return Repeated
     else
       Optional
     end
 
-  fun _get_proto_type(field: FieldDescriptorProto): FieldProtoType =>
-    match field.type_field
-    | FieldDescriptorProtoTypeTYPEMESSAGE => MessageType
-    | FieldDescriptorProtoTypeTYPEENUM => EnumType
+  fun _get_proto_type(field: ValidFieldDescriptorProto): FieldProtoType =>
+    match field.type_name
+    | (MessageType, _) => MessageType
+    | (EnumType, _) => EnumType
     else
       PrimitiveType
     end
@@ -80,125 +78,97 @@ primitive CodeGenFields
     writer: CodeGenWriter ref,
     template_ctx: GenTemplate,
     scope: SymbolScope box,
-    fields: Array[FieldDescriptorProto])
-    : Array[FieldMeta] val
+    fields: Array[ValidFieldDescriptorProto] val)
+    : Result[Array[FieldMeta] val, String]
   =>
     // Mapping of fields to its field number and kind
     let field_meta = recover Array[FieldMeta] end
     let field_numbers = Map[String, (U64, TagKind)]
     for field in fields.values() do
-      try
-        let name = GenNames.message_field(field.name as String)
-        let field_number = field.number as I32
-        let field_type_tuple = _find_field_type(field,
-          field.label as FieldDescriptorProtoLabel, scope)?
-        (
-          let wire_type,
-          let needs_zigzag,
-          let pony_type_decl,
-          let pony_type_inner,
-          let default
-        ) = field_type_tuple
-        let proto_label = _get_proto_label(field)
-        let proto_type = _get_proto_type(field)
-        field_meta.push(
-          FieldMeta(where
-            name' = name,
-            number' = field_number,
-            wire_type' = wire_type,
-            uses_zigzag' = needs_zigzag,
-            pony_type_decl' = pony_type_decl,
-            pony_type_inner' = pony_type_inner,
-            default_assignment' = default,
-            proto_type' = proto_type,
-            proto_label' = proto_label
-          )
-        )
-      end // TODO(borja): What do we do about anonymous messages?
-    end
-    recover Sort[Array[FieldMeta], FieldMeta](consume field_meta) end
-
-  fun _find_field_type(
-    field: FieldDescriptorProto,
-    field_label: FieldDescriptorProtoLabel,
-    scope: SymbolScope box)
-    : (TagKind, Bool, String, String, String)
-    ?
-  =>
-
-    match field.type_field
-    | let field_type: FieldDescriptorProtoType =>
-      match GenTypes.typeof(field_type, field_label, field.default_value)
-      | (let wire_type: TagKind, let needs_zigzag: Bool) =>
-        // We couldn't decipher the type, it's possible that it's a
-        // message or enum type.
-        let pony_type = GenTypes.label_of(
-          scope(field.type_name as String) as String,
-          field_label
-        )
-        (
-          wire_type,
-          needs_zigzag,
-          pony_type._1,
-          pony_type._2,
-          _find_default(
-            scope,
-            field.type_name as String,
-            field.default_value,
-            field_label
-          )?
-        )
-
-      | (
+      let name = GenNames.message_field(field.name)
+      let field_number = field.number
+      let field_type_tuple_result = _find_field_type(field, field.label, scope)
+      match field_type_tuple_result
+      | (Error, let error_msg: String) =>
+        return (Error, error_msg)
+      | (Ok, (
           let wire_type: TagKind,
           let needs_zigzag: Bool,
           let pony_type_decl: String,
           let pony_type_inner: String,
-          let default_value: String
-        ) =>
-        // Everything went OK
-        (
-          wire_type,
-          needs_zigzag,
-          pony_type_decl,
-          pony_type_inner,
-          default_value
-        )
+          let default: String
+        )) =>
+          let proto_label = _get_proto_label(field)
+          let proto_type = _get_proto_type(field)
+          field_meta.push(
+            FieldMeta(where
+              name' = name,
+              number' = field_number,
+              wire_type' = wire_type,
+              uses_zigzag' = needs_zigzag,
+              pony_type_decl' = pony_type_decl,
+              pony_type_inner' = pony_type_inner,
+              default_assignment' = default,
+              proto_type' = proto_type,
+              proto_label' = proto_label
+            )
+          )
       end
-    else
-      // Allowed, but type_name better be set.
-      // We assume that this is a message type
-      let pony_type = GenTypes.label_of(
-        scope(field.type_name as String) as String,
-        field_label
-      )
-      (
-        DelimitedField,
-        false, // This is either message or enum, so no zigzag
-        pony_type._1,
-        pony_type._2,
-        _find_default(
-          scope,
-          field.type_name as String,
-          field.default_value,
-          field_label
-        )?
-      )
     end
+    (Ok, recover Sort[Array[FieldMeta], FieldMeta](consume field_meta) end)
 
-  fun _find_default(
-    scope: SymbolScope box,
-    type_name: String,
-    default: (String | None),
-    label: FieldDescriptorProtoLabel)
-    : String
-    ?
+  fun _find_field_type(
+    field: ValidFieldDescriptorProto,
+    field_label: FieldDescriptorProtoLabel,
+    scope: SymbolScope box)
+    : Result[(TagKind, Bool, String, String, String), String]
   =>
-    match default
-    | None if label isnt FieldDescriptorProtoLabelLABELREPEATED =>
-      "None"
+    match field.type_field
+    | let proto_type: AllowedProtoTypes =>
+      (Ok, GenTypes.typeof(proto_type, field_label, field.default_value))
     | None =>
-      GenTypes.default_value(scope(type_name) as String, label)
-    | let str: String =>
-      GenTypes.default_value(scope(str) as String, label)
+      match field.type_name
+      | None =>
+        // Can't happen, the type_field and type_name are exclusive
+        (
+          Error,
+          "pony-protobuf internal error: " + field.name +
+          " with type unset, but type_name is None"
+        )
+      | (let kind: (MessageType | EnumType), let type_name: String) =>
+        // The type has a name, check scope
+        let wire_type = match kind
+        | EnumType => VarintField
+        | MessageType => DelimitedField
+        end
+
+        try
+          let pony_type = GenTypes.label_of(scope(type_name)?, field_label)
+          let pony_default =
+            match field.default_value
+            | None if field_label isnt FieldDescriptorProtoLabelLABELREPEATED =>
+              "None"
+            | None =>
+              GenTypes.default_value(scope(type_name)?, field_label)
+            | let str: String =>
+              GenTypes.default_value(scope(str)?, field_label)
+            end
+          (
+            Ok,
+            (
+              wire_type,
+              false, // This is either message or enum, so no zigzag
+              pony_type._1,
+              pony_type._2,
+              pony_default
+            )
+          )
+        else
+          (
+            Error,
+            "pony-protobuf internal error: " + field.name +
+            " has default value, but couldn't find its type on symbol scope"
+          )
+        end
+      end
     end
