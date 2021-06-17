@@ -39,7 +39,7 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v2
       - name: Test with the most recent ponyc release
-        run: make test config=release
+        run: make test plugin config=release
 
   linux-debug-vs-ponyc-release:
     name: Verify debug mode on Linux with most recent ponyc release
@@ -50,4 +50,4 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v2
       - name: Test with the most recent ponyc release
-        run: make test config=debug
+        run: make test plugin config=debug
