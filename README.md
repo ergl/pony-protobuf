@@ -23,7 +23,7 @@ A protocol buffers library and compiler for Pony.
 * [ ] "proto3" syntax
 * [ ] Message extensions.
 * [ ] Generating descriptor metadata
-* [ ] Discards any unknown types when parsing.
+* [ ] Preserving unknown types when parsing (proto2, proto3 3.5+).
 * [ ] groups (proto2). Although deprecated, the current library doesn't know how to handle these. In the future it will ignore any groups when marshalling.
 * [ ] Default definitions for `byte` fields.
 * [ ] The `allow_alias` enum option.
