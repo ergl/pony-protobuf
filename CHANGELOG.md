@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file. This projec
 ### Added
 
 - Improve front-end error reporting ([PR #19](https://github.com/ergl/pony-protobuf/pull/19))
+- Add support for `oneof` fields ([PR #20](https://github.com/ergl/pony-protobuf/pull/20))
 
 ### Changed
 
