@@ -26,7 +26,6 @@ primitive CodeGenMessages
             message.fields)
           match field_meta_result
           | (Error, let error_reason: String) =>
-          | (Error, let error_reason: String) =>
             return error_reason
           | (Ok, let field_meta: Array[FieldMeta] val) =>
             writer.write_message(message_name, field_meta, template_ctx)
