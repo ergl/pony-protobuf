@@ -250,6 +250,56 @@ class CodeGenWriter
       _fill_write_clause_optional(field_meta, template_ctx)?
     end
 
+  fun _fill_write_oneof_clause(
+    oneof: OneOfMeta,
+    template_ctx: GenTemplate)
+    : String
+    ?
+  =>
+    // TODO(borja): Same as _fill_write_clause_optional, refactor
+    let tpl = TemplateValues
+    tpl("name") = oneof.name
+    let clauses = Array[TemplateValue]
+    for (marker, field_meta) in oneof.fields.values() do
+      let inner_tpl = TemplateValues
+      let inner_tpl_props = Map[String, TemplateValue]
+      inner_tpl_props("marker") = TemplateValue(marker)
+      inner_tpl_props("name") = TemplateValue(field_meta.name)
+      inner_tpl_props("type") = TemplateValue(field_meta.pony_type_inner)
+      if
+        (field_meta.proto_type is MessageType) or
+        (field_meta.proto_label is Repeated) or
+        ((field_meta.wire_type is DelimitedField) and
+         (field_meta.pony_type_inner == "Array[U8]"))
+      then
+        inner_tpl_props("needs_viewpoint") = TemplateValue("")
+      end
+      let body_tpl = TemplateValues
+      body_tpl("field") = field_meta.name
+      body_tpl("number") = field_meta.number
+      body_tpl("type") = field_meta.pony_type_inner
+      let inner_template = match field_meta.proto_type
+      | MessageType => template_ctx.write_inner_message
+      | EnumType => template_ctx.write_enum
+      | PrimitiveType => match field_meta.wire_type
+        | Fixed32Field => template_ctx.write_fixed_32
+        | Fixed64Field => template_ctx.write_fixed_64
+        | DelimitedField => template_ctx.write_bytes
+        | VarintField =>
+          if field_meta.uses_zigzag then
+            template_ctx.write_varint_zigzag
+          else
+            template_ctx.write_varint
+          end
+        end
+      end
+
+      inner_tpl_props("body") = TemplateValue(inner_template.render(body_tpl)?)
+      clauses.push(TemplateValue("", inner_tpl_props))
+    end
+    tpl("clauses") = TemplateValue(clauses)
+    template_ctx.write_oneof_clause.render(tpl)?
+
   fun _fill_write_clauses(
     metas: Array[DeclMeta] box,
     template_ctx: GenTemplate)
@@ -262,6 +312,10 @@ class CodeGenWriter
         | let field: FieldMeta =>
           clauses.push(
             TemplateValue(_fill_write_clause(field, template_ctx)?)
+          )
+        | let oneof: OneOfMeta =>
+          clauses.push(
+            TemplateValue(_fill_write_oneof_clause(oneof, template_ctx)?)
           )
         end
       end

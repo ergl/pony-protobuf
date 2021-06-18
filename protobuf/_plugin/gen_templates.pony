@@ -59,6 +59,7 @@ class val GenTemplate
   let write_packed_fixed: Template
   let write_packed_enum: Template
   let write_optional_clause: Template
+  let write_oneof_clause: Template
 
   new val create() ? =>
     header = Template.parse(
@@ -353,6 +354,15 @@ class val GenTemplate
           | None => None
           | let {{field}}': {{if needs_viewpoint}}this->{{end}}{{type}} =>
             {{body}}
+          end"""
+    )?
+
+    write_oneof_clause = Template.parse(
+      """
+      match {{name}}
+          | None => None{{for c in clauses}}
+          | ({{c.marker}}, let {{c.name}}: {{if c.needs_viewpoint}}this->{{end}}{{c.type}}) =>
+            {{c.body}}{{end}}
           end"""
     )?
 
