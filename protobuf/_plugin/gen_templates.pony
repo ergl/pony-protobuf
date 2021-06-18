@@ -35,6 +35,7 @@ class val GenTemplate
   let read_packed_fixed: Template
   let read_packed_enum: Template
   let read_inner_message: Template
+  let read_inner_message_oneof: Template
   let read_repeated_inner_message: Template
   let read_repeated_bytes: Template
   let read_repeated_string: Template
@@ -222,31 +223,36 @@ class val GenTemplate
     read_bytes = Template.parse(
       """
       | ({{number}}, {{wire_type}}) =>
-              {{name}} = reader.read_bytes()?"""
+              {{if oneof}}let {{end}}{{name}} = reader.read_bytes()?{{if oneof}}
+              {{field_name}} = ({{marker}}, {{name}}){{end}}"""
     )?
 
     read_string = Template.parse(
       """
       | ({{number}}, {{wire_type}}) =>
-              {{name}} = reader.read_string()?"""
+              {{if oneof}}let {{end}}{{name}} = reader.read_string()?{{if oneof}}
+              {{field_name}} = ({{marker}}, consume {{name}}){{end}}"""
     )?
 
     read_enum = Template.parse(
       """
       | ({{number}}, {{wire_type}}) =>
-              {{name}} = {{enum_builder}}.from_i32(reader.read_varint_32()?.i32())"""
+              {{if oneof}}let {{end}}{{name}} = {{enum_builder}}.from_i32(reader.read_varint_32()?.i32()){{if oneof}}
+              {{field_name}} = ({{marker}}, {{name}}){{end}}"""
     )?
 
     read_varint = Template.parse(
       """
       | ({{number}}, {{wire_type}}) =>
-              {{name}} = reader.read_varint_{{varint_kind}}()?{{if conv_type}}.{{conv_type}}(){{end}}"""
+              {{if oneof}}let {{end}}{{name}} = reader.read_varint_{{varint_kind}}()?{{if conv_type}}.{{conv_type}}(){{end}}{{if oneof}}
+              {{field_name}} = ({{marker}}, {{name}}){{end}}"""
     )?
 
     read_fixed = Template.parse(
       """
       | ({{number}}, {{wire_type}}) =>
-              {{name}} = reader.read_fixed_{{fixed_size}}_{{fixed_kind}}()?{{if conv_type}}.{{conv_type}}(){{end}}"""
+              {{if oneof}}let {{end}}{{name}} = reader.read_fixed_{{fixed_size}}_{{fixed_kind}}()?{{if conv_type}}.{{conv_type}}(){{end}}{{if oneof}}
+              {{field_name}} = ({{marker}}, {{name}}){{end}}"""
     )?
 
     read_packed_varint = Template.parse(
@@ -286,6 +292,17 @@ class val GenTemplate
                 {{name}} = {{type}}.>parse_from_stream(reader.pop_embed()?)?
               | let {{name}}': {{type}} =>
                 {{name}}'.parse_from_stream(reader.pop_embed()?)?
+              end"""
+    )?
+
+    read_inner_message_oneof = Template.parse(
+      """
+      | ({{number}}, DelimitedField) =>
+              match {{field_name}}
+              | ({{marker}}, let {{name}}: {{type}}) =>
+                {{name}}.parse_from_stream(reader.pop_embed()?)?
+              else
+                {{field_name}} = ({{marker}}, {{type}}.>parse_from_stream(reader.pop_embed()?)?)
               end"""
     )?
 

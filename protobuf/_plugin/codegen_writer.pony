@@ -748,6 +748,67 @@ class CodeGenWriter
       _fill_read_clause_optional(field_meta, template_ctx)?
     end
 
+  fun _fill_read_oneof_clause(
+    field_meta: FieldMeta,
+    tpl: TemplateValues,
+    template_ctx: GenTemplate)
+    : String
+    ?
+  =>
+    // TODO(borja): Same as _fill_read_clause_optional, refactor
+    tpl("name") = field_meta.name
+    tpl("number") = field_meta.number
+    tpl("wire_type") = field_meta.wire_type.string()
+    let template = match field_meta.proto_type
+    | MessageType =>
+      tpl("type") = field_meta.pony_type_inner
+      template_ctx.read_inner_message_oneof
+    | EnumType =>
+      tpl("enum_builder") = GenNames.enum_builder(field_meta.pony_type_inner)
+      template_ctx.read_enum
+    | PrimitiveType =>
+      match field_meta.wire_type
+      | DelimitedField =>
+        if field_meta.pony_type_inner == "Array[U8]" then
+          template_ctx.read_bytes
+        else
+          template_ctx.read_string
+        end
+      | VarintField =>
+        tpl("varint_kind") = GenTypes.varint_kind(field_meta.uses_zigzag,
+          field_meta.pony_type_inner)
+        let conv_type = GenTypes.convtype(VarintField, field_meta.uses_zigzag,
+          field_meta.pony_type_inner)
+        match conv_type
+        | None => None
+        | let conv_type': String =>
+          tpl("conv_type") = conv_type'
+        end
+        template_ctx.read_varint
+      else
+        tpl("fixed_kind") =
+          if
+            (field_meta.pony_type_inner == "F32") or
+            (field_meta.pony_type_inner == "F64") then
+              "float"
+          else
+              "integer"
+          end
+        tpl("fixed_size") =
+          if field_meta.wire_type is Fixed32Field then "32" else "64" end
+        // Do we need a cast between types?
+        let conv_type = GenTypes.convtype(field_meta.wire_type, false,
+         field_meta.pony_type_inner)
+        match conv_type
+        | None => None
+        | let conv_type': String =>
+          tpl("conv_type") = conv_type'
+        end
+        template_ctx.read_fixed
+      end
+    end
+    template.render(tpl)?
+
   fun _fill_read_clauses(
     metas: Array[DeclMeta] box,
     template_ctx: GenTemplate)
@@ -761,8 +822,16 @@ class CodeGenWriter
           clauses.push(
             TemplateValue(_fill_read_clause(field, template_ctx)?)
           )
-        else
-          None
+        | let oneof: OneOfMeta =>
+          for (marker, field) in oneof.fields.values() do
+            let tpl = TemplateValues
+            tpl("oneof") = ""
+            tpl("field_name") = oneof.name
+            tpl("marker") = marker
+            clauses.push(
+              TemplateValue(_fill_read_oneof_clause(field, tpl, template_ctx)?)
+          )
+          end
         end
       end
     end
