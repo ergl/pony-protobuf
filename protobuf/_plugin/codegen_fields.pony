@@ -1,5 +1,68 @@
 use ".."
 use "collections"
+use persistent = "collections/persistent"
+
+type DeclMeta is (OneOfMeta | FieldMeta)
+
+class val OneOfMeta is Comparable[DeclMeta]
+  """
+  oneofs are defined like OCaml's variant types: a union of tuple types, where
+  the first element is a primitive, and the second element is a raw Pony type.
+  For a oneof like:
+
+  ```proto
+  message SampleMessage {
+    oneof test_oneof {
+      int32 field_a = 1;
+      int32 field_b = 2;
+      string name = 3 [default = "foo"];
+    }
+  }
+  ```
+
+  The corresponding Pony type is:
+
+  ```pony
+  primitive SampleMessageFieldAField
+  primitive SampleMessageFieldBField
+  primitive SampleMessageNameField
+
+  class SampleMessage
+    var test_oneof: ((SampleMessageFieldAField, I32)
+                    | (SampleMessageFieldBField, I32)
+                    | (SampleMessageNameField, String)
+                    | None)
+  ```
+
+  Since oneofs are always optional, we have to add `None` to count for the
+  missing case.
+  """
+
+  let name: String
+  // The fields inside this oneof, along with their Pony "primitive" name
+  let fields: Array[(String, FieldMeta)] val
+
+  new val create(
+    name': String,
+    fields': Array[(String, FieldMeta)] val)
+  =>
+    name = name'
+    fields = fields'
+
+  fun ne(other: DeclMeta): Bool => not eq(other)
+  fun eq(other: DeclMeta): Bool =>
+    match other
+    | let oneof: OneOfMeta => name == oneof.name
+    else
+      false
+    end
+
+  fun lt(other: DeclMeta): Bool =>
+    match other
+    | let oneof: OneOfMeta => name < oneof.name
+    else
+      false // Always ordered after regular fields
+    end
 
 primitive Repeated
 primitive RepeatedPacked
@@ -12,7 +75,7 @@ primitive EnumType
 primitive MessageType
 type FieldProtoType is (PrimitiveType | EnumType | MessageType)
 
-class val FieldMeta is Comparable[FieldMeta]
+class val FieldMeta is Comparable[DeclMeta]
   let name: String
   let number: String
   let _number: I32
@@ -48,9 +111,20 @@ class val FieldMeta is Comparable[FieldMeta]
     proto_type = proto_type'
     proto_label = proto_label'
 
-  fun eq(other: FieldMeta box): Bool => _number == other._number
-  fun ne(other: FieldMeta box): Bool => _number != other._number
-  fun lt(other: FieldMeta box): Bool => _number < other._number
+  fun ne(other: DeclMeta): Bool => not eq(other)
+  fun eq(other: DeclMeta): Bool =>
+    match other
+    | let field: FieldMeta => _number == field._number
+    else
+      false
+    end
+
+  fun lt(other: DeclMeta): Bool =>
+    match other
+    | let field: FieldMeta => _number < field._number
+    else
+      false //fields always before oneofs
+    end
 
 primitive CodeGenFields
   fun _get_proto_label(field: ValidFieldDescriptorProto): FieldProtoLabel =>
@@ -78,11 +152,18 @@ primitive CodeGenFields
     writer: CodeGenWriter ref,
     template_ctx: GenTemplate,
     scope: SymbolScope box,
+    message_name: String,
+    oneof_decls: Array[String] val,
     fields: Array[ValidFieldDescriptorProto] val)
-    : Result[Array[FieldMeta] val, String]
+    : Result[Array[DeclMeta] val, String]
   =>
+    let oneof_mapping = Map[String, persistent.Vec[FieldMeta]]
+    for decl in oneof_decls.values() do
+      oneof_mapping(decl) = persistent.Vec[FieldMeta]
+    end
+
+    let metas = recover Array[DeclMeta] end
     // Mapping of fields to its field number and kind
-    let field_meta = recover Array[FieldMeta] end
     let field_numbers = Map[String, (U64, TagKind)]
     for field in fields.values() do
       let name = GenNames.message_field(field.name)
@@ -100,8 +181,7 @@ primitive CodeGenFields
         )) =>
           let proto_label = _get_proto_label(field)
           let proto_type = _get_proto_type(field)
-          field_meta.push(
-            FieldMeta(where
+          let field_meta = FieldMeta(where
               name' = name,
               number' = field_number,
               wire_type' = wire_type,
@@ -111,11 +191,39 @@ primitive CodeGenFields
               default_assignment' = default,
               proto_type' = proto_type,
               proto_label' = proto_label
-            )
           )
+
+          match field.oneof_index
+          | None => metas.push(field_meta)
+          | let idx: I32 =>
+            try
+              let decl = oneof_decls(idx.usize())?
+              let prev = oneof_mapping(decl)? // Can't fail
+              oneof_mapping(decl) = prev.push(field_meta)
+            else
+              return (Error,
+                "pony-protobuf: can't find oneof declaration for field " + name)
+            end
+          end
       end
     end
-    (Ok, recover Sort[Array[FieldMeta], FieldMeta](consume field_meta) end)
+    for (oneof_name, oneof_fields_vec) in oneof_mapping.pairs() do
+      // What a mess, sort this out
+      var oneof_fields_array = Array[FieldMeta]
+      for oneof_field in oneof_fields_vec.values() do
+        oneof_fields_array.push(oneof_field)
+      end
+      oneof_fields_array = Sort[Array[FieldMeta], FieldMeta](oneof_fields_array)
+      let oneof_fields = recover Array[(String, FieldMeta)] end
+      for oneof_field in oneof_fields_array.values() do
+        oneof_fields.push((
+          GenNames.oneof_field(oneof_field.name.clone(), message_name),
+          oneof_field
+        ))
+      end
+      metas.push(OneOfMeta(oneof_name, consume oneof_fields))
+    end
+    (Ok, recover Sort[Array[DeclMeta], DeclMeta](consume metas) end)
 
   fun _find_field_type(
     field: ValidFieldDescriptorProto,

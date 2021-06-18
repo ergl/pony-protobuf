@@ -23,11 +23,11 @@ primitive CodeGenMessages
           // modify the scope.
           let my_scope = scope_map(message_name) as SymbolScope box
           let field_meta_result = CodeGenFields(writer, template_ctx, my_scope,
-            message.fields)
+            message_name, message.oneof_decls, message.fields)
           match field_meta_result
           | (Error, let error_reason: String) =>
             return error_reason
-          | (Ok, let field_meta: Array[FieldMeta] val) =>
+          | (Ok, let field_meta: Array[DeclMeta] val) =>
             writer.write_message(message_name, field_meta, template_ctx)
           end
         else

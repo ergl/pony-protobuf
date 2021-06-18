@@ -16,11 +16,13 @@ class val GenTemplate
   let initialized_message_clause: Template
   let initialized_required_message_clause: Template
   let initialized_repeated_clause: Template
+  let initialized_oneof_clause: Template
 
   // compute_size
   let size_optional_clause: Template
   let size_repeated_clause: Template
   let size_packed_clause: Template
+  let size_oneof_clause: Template
 
   // parse_from_stream
   let read_bytes: Template
@@ -101,6 +103,9 @@ class val GenTemplate
 
     message_structure = Template.parse(
       """
+      {{ifnotempty oneof_primitives}}{{for p in oneof_primitives}}
+      primitive {{p}}{{end}}
+      {{end}}
       class {{name}} is ProtoMessage{{ifnotempty fields}}{{for field in fields}}
         var {{field.name}}: {{field.pony_type}} = {{field.default}}{{end}}{{end}}
         {{ifnotempty field_size_clauses}}
@@ -165,6 +170,19 @@ class val GenTemplate
           end"""
     )?
 
+    initialized_oneof_clause = Template.parse(
+      """
+      match {{name}}{{for c in clauses}}
+          | ({{c.marker}}, let {{c.name}}: this->{{c.type}}) =>
+            if not ({{c.name}}.is_initialized()) then
+              return false
+            end{{end}}{{if more_fields}}
+          else
+            None{{end}}
+          end
+      """
+    )?
+
     size_optional_clause = Template.parse(
       """
       match {{name}}
@@ -184,6 +202,16 @@ class val GenTemplate
     size_packed_clause = Template.parse(
       """
       size = size + FieldSize.{{method}}{{if method_type}}[{{method_type}}]{{end}}({{number}}, {{name}})"""
+    )?
+
+    size_oneof_clause = Template.parse(
+      """
+      match {{name}}
+          | None => None{{for c in clauses}}
+          | ({{c.marker}}, let {{c.name}}: {{if c.needs_viewpoint}}this->{{end}}{{c.type}}) =>
+            size = size + FieldSize.{{c.method}}{{if c.method_type}}[{{c.method_type}}]{{end}}({{c.number}}{{if c.needs_name_arg}}, {{c.name}}{{end}}){{end}}
+          end
+      """
     )?
 
     read_bytes = Template.parse(

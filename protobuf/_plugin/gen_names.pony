@@ -13,6 +13,19 @@ primitive GenNames
   fun enum_builder(enum_pony_name: String): String =>
     enum_pony_name + "Builder"
 
+  fun oneof_field(name: String iso, prefix: String = ""): String =>
+    """
+    Converts snake_case to CamelCase with a CamelCase prefix
+    """
+    // Prefix is already formatted, but name is not
+    let parts = name.split_by("_")
+    let final = recover String.>append(prefix) end
+    for part in (consume parts).values() do
+      final.append(_upper_range(part.clone(), 0, 0))
+    end
+    final.append("Field")
+    consume final
+
   fun message_field(name: String): String =>
     if _is_keyword(name) then
       return name + "_field"
