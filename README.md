@@ -13,12 +13,12 @@ A protocol buffers library and compiler for Pony.
 * Importing other files (although namespaces are flat, see point below about packages).
 * Nested types.
 * The `packed` and `default` options for fields (but not for `bytes`, see [#2](https://github.com/ergl/pony-protobuf/issues/2)).
+* `oneof` fields.
 * Skipping over unknown message fields.
 * Merging of messages (simply call `parse_from_stream` multiple times).
 
 ### What doesn't work (yet)
 
-* [ ] `oneof` fields
 * [ ] `map<_,_>` syntax
 * [ ] "proto3" syntax
 * [ ] Message extensions.
@@ -103,7 +103,7 @@ class AddressBook is ProtoMessage
 ## Mapping of protocol buffer types to Pony
 
 | Protobuf type | Pony type |
-| :---: | :---: |
+| :---: | :--- |
 | `bool` | `Bool` |
 | `double` | `F32` |
 | `float` | `F64` |
@@ -114,8 +114,8 @@ class AddressBook is ProtoMessage
 | `string` | `String val` |
 | `bytes` | `Array[U8] ref` |
 | `enum` | Primitives (see below) |
+| `oneof` | `(ChosenField, value)`: union type of tuples and primitives (see below) |
 | `map<_,_>` | Not supported (yet) |
-| `oneof` | Not supported (yet) |
 | `groups` | Not supported (no plans) |
 
 Repeated fields are represented as `Array[T] ref`, and optional types are represented as `(T | None)`. Required types (proto2) are also represented as `(T | None)`, to discern between uninitialized types and default values. Users are encouraged to call `Message.is_initialized()` to ensure that the message contains all required types.
@@ -172,6 +172,38 @@ primitive PhoneType
 ```
 
 This option is shorter, doesn't pollute the namespace, but doesn't offer any type-checking affordances to the user. That's the reason I opted for the more verbose alternative. In the future, I might change this.
+
+### `oneof` fields
+
+In protobuf, a `oneof` field represents a set of many optional fields, where at most once field is set at any time. To distiniguish between different fields, the generated Pony code uses a union type, where each element is a tuple of the form `(Name, value)`. Each `Name` is represented by a Pony primitive. Here's an example from `oneof.pony`:
+
+```proto
+message SampleMessage {
+  oneof test_oneof {
+    int32 field_a = 1;
+    int32 field_b = 2;
+    string name = 3;
+    SubMessage sub_message = 4;
+  }
+}
+```
+
+```pony
+primitive SampleMessageFieldAField
+primitive SampleMessageFieldBField
+primitive SampleMessageNameField
+primitive SampleMessageSubMessageField
+
+class SampleMessage is ProtoMessage
+  var test_oneof: (
+    None
+    | (SampleMessageFieldAField, I32)
+    | (SampleMessageFieldBField, I32)
+    | (SampleMessageNameField, String)
+    | (SampleMessageSubMessageField, SubMessage) = None
+
+  // ...
+```
 
 ## API Documentation
 
