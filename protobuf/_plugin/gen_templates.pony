@@ -9,6 +9,7 @@ class val GenTemplate
   let enum_builder: Template
 
   // Message
+  let oneof_field_type_alias: Template
   let message_structure: Template
 
   // is_initialized
@@ -101,6 +102,12 @@ class val GenTemplate
       """
     )?
 
+    oneof_field_type_alias = Template.parse(
+      """
+      (None{{for t in type_aliases}}
+          | ({{t.marker}}, {{t.pony_type}}){{end}})"""
+    )?
+
     message_structure = Template.parse(
       """
       {{ifnotempty oneof_primitives}}{{for p in oneof_primitives}}
@@ -179,8 +186,7 @@ class val GenTemplate
             end{{end}}{{if more_fields}}
           else
             None{{end}}
-          end
-      """
+          end"""
     )?
 
     size_optional_clause = Template.parse(
@@ -210,8 +216,7 @@ class val GenTemplate
           | None => None{{for c in clauses}}
           | ({{c.marker}}, let {{c.name}}: {{if c.needs_viewpoint}}this->{{end}}{{c.type}}) =>
             size = size + FieldSize.{{c.method}}{{if c.method_type}}[{{c.method_type}}]{{end}}({{c.number}}{{if c.needs_name_arg}}, {{c.name}}{{end}}){{end}}
-          end
-      """
+          end"""
     )?
 
     read_bytes = Template.parse(

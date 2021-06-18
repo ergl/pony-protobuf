@@ -74,15 +74,44 @@ class CodeGenWriter
   =>
     let fields = Array[TemplateValue]
     for elt in metas.values() do
+      let tpl = Map[String, TemplateValue]
       match elt
       | let field: FieldMeta =>
-        let tpl = Map[String, TemplateValue]
         tpl("name") = TemplateValue(field.name)
         tpl("pony_type") = TemplateValue(field.pony_type_decl)
         tpl("default") = TemplateValue(field.default_assignment)
         fields.push(TemplateValue("", tpl))
-      else
-        None
+
+      | let oneof: OneOfMeta =>
+        tpl("name") = TemplateValue(oneof.name)
+        tpl("default") = TemplateValue("None")
+        let type_alias = Array[TemplateValue]
+        for (marker, field) in oneof.fields.values() do
+          if field.default_assignment != "None" then
+            // FIXME(borja): Custom default values in oneofs are LWW
+            tpl("default") = TemplateValue(
+              "(" + marker + ", " + field.default_assignment + ")"
+            )
+          end
+
+          // Build the type alias
+          let inner_tpl = TemplateValues
+          let inner_tpl_props = Map[String, TemplateValue]
+          inner_tpl_props("marker") = TemplateValue(marker)
+          // Safe to use inner, repeated fields are not allowed inside oneof
+          inner_tpl_props("pony_type") = TemplateValue(field.pony_type_inner)
+          type_alias.push(TemplateValue("", inner_tpl_props))
+        end
+        let alias_tpl = TemplateValues
+        alias_tpl("type_aliases") = TemplateValue(type_alias)
+        try
+          tpl("pony_type") = TemplateValue(
+            template_ctx.oneof_field_type_alias.render(
+              alias_tpl
+            )?
+          )
+          fields.push(TemplateValue("", tpl))
+        end
       end
     end
     TemplateValue(fields)
