@@ -9,6 +9,7 @@ class val GenTemplate
   let enum_builder: Template
 
   // Message
+  let oneof_field_type_alias: Template
   let message_structure: Template
 
   // is_initialized
@@ -16,11 +17,13 @@ class val GenTemplate
   let initialized_message_clause: Template
   let initialized_required_message_clause: Template
   let initialized_repeated_clause: Template
+  let initialized_oneof_clause: Template
 
   // compute_size
   let size_optional_clause: Template
   let size_repeated_clause: Template
   let size_packed_clause: Template
+  let size_oneof_clause: Template
 
   // parse_from_stream
   let read_bytes: Template
@@ -32,6 +35,7 @@ class val GenTemplate
   let read_packed_fixed: Template
   let read_packed_enum: Template
   let read_inner_message: Template
+  let read_inner_message_oneof: Template
   let read_repeated_inner_message: Template
   let read_repeated_bytes: Template
   let read_repeated_string: Template
@@ -55,6 +59,7 @@ class val GenTemplate
   let write_packed_fixed: Template
   let write_packed_enum: Template
   let write_optional_clause: Template
+  let write_oneof_clause: Template
 
   new val create() ? =>
     header = Template.parse(
@@ -99,8 +104,17 @@ class val GenTemplate
       """
     )?
 
+    oneof_field_type_alias = Template.parse(
+      """
+      (None{{for t in type_aliases}}
+          | ({{t.marker}}, {{t.pony_type}}){{end}})"""
+    )?
+
     message_structure = Template.parse(
       """
+      {{ifnotempty oneof_primitives}}{{for p in oneof_primitives}}
+      primitive {{p}}{{end}}
+      {{end}}
       class {{name}} is ProtoMessage{{ifnotempty fields}}{{for field in fields}}
         var {{field.name}}: {{field.pony_type}} = {{field.default}}{{end}}{{end}}
         {{ifnotempty field_size_clauses}}
@@ -165,6 +179,18 @@ class val GenTemplate
           end"""
     )?
 
+    initialized_oneof_clause = Template.parse(
+      """
+      match {{name}}{{for c in clauses}}
+          | ({{c.marker}}, let {{c.name}}: this->{{c.type}}) =>
+            if not ({{c.name}}.is_initialized()) then
+              return false
+            end{{end}}{{if more_fields}}
+          else
+            None{{end}}
+          end"""
+    )?
+
     size_optional_clause = Template.parse(
       """
       match {{name}}
@@ -186,34 +212,48 @@ class val GenTemplate
       size = size + FieldSize.{{method}}{{if method_type}}[{{method_type}}]{{end}}({{number}}, {{name}})"""
     )?
 
+    size_oneof_clause = Template.parse(
+      """
+      match {{name}}
+          | None => None{{for c in clauses}}
+          | ({{c.marker}}, let {{c.name}}: {{if c.needs_viewpoint}}this->{{end}}{{c.type}}) =>
+            size = size + FieldSize.{{c.method}}{{if c.method_type}}[{{c.method_type}}]{{end}}({{c.number}}{{if c.needs_name_arg}}, {{c.name}}{{end}}){{end}}
+          end"""
+    )?
+
     read_bytes = Template.parse(
       """
       | ({{number}}, {{wire_type}}) =>
-              {{name}} = reader.read_bytes()?"""
+              {{if oneof}}let {{end}}{{name}} = reader.read_bytes()?{{if oneof}}
+              {{field_name}} = ({{marker}}, {{name}}){{end}}"""
     )?
 
     read_string = Template.parse(
       """
       | ({{number}}, {{wire_type}}) =>
-              {{name}} = reader.read_string()?"""
+              {{if oneof}}let {{end}}{{name}} = reader.read_string()?{{if oneof}}
+              {{field_name}} = ({{marker}}, consume {{name}}){{end}}"""
     )?
 
     read_enum = Template.parse(
       """
       | ({{number}}, {{wire_type}}) =>
-              {{name}} = {{enum_builder}}.from_i32(reader.read_varint_32()?.i32())"""
+              {{if oneof}}let {{end}}{{name}} = {{enum_builder}}.from_i32(reader.read_varint_32()?.i32()){{if oneof}}
+              {{field_name}} = ({{marker}}, {{name}}){{end}}"""
     )?
 
     read_varint = Template.parse(
       """
       | ({{number}}, {{wire_type}}) =>
-              {{name}} = reader.read_varint_{{varint_kind}}()?{{if conv_type}}.{{conv_type}}(){{end}}"""
+              {{if oneof}}let {{end}}{{name}} = reader.read_varint_{{varint_kind}}()?{{if conv_type}}.{{conv_type}}(){{end}}{{if oneof}}
+              {{field_name}} = ({{marker}}, {{name}}){{end}}"""
     )?
 
     read_fixed = Template.parse(
       """
       | ({{number}}, {{wire_type}}) =>
-              {{name}} = reader.read_fixed_{{fixed_size}}_{{fixed_kind}}()?{{if conv_type}}.{{conv_type}}(){{end}}"""
+              {{if oneof}}let {{end}}{{name}} = reader.read_fixed_{{fixed_size}}_{{fixed_kind}}()?{{if conv_type}}.{{conv_type}}(){{end}}{{if oneof}}
+              {{field_name}} = ({{marker}}, {{name}}){{end}}"""
     )?
 
     read_packed_varint = Template.parse(
@@ -253,6 +293,17 @@ class val GenTemplate
                 {{name}} = {{type}}.>parse_from_stream(reader.pop_embed()?)?
               | let {{name}}': {{type}} =>
                 {{name}}'.parse_from_stream(reader.pop_embed()?)?
+              end"""
+    )?
+
+    read_inner_message_oneof = Template.parse(
+      """
+      | ({{number}}, DelimitedField) =>
+              match {{field_name}}
+              | ({{marker}}, let {{name}}: {{type}}) =>
+                {{name}}.parse_from_stream(reader.pop_embed()?)?
+              else
+                {{field_name}} = ({{marker}}, {{type}}.>parse_from_stream(reader.pop_embed()?)?)
               end"""
     )?
 
@@ -303,6 +354,15 @@ class val GenTemplate
           | None => None
           | let {{field}}': {{if needs_viewpoint}}this->{{end}}{{type}} =>
             {{body}}
+          end"""
+    )?
+
+    write_oneof_clause = Template.parse(
+      """
+      match {{name}}
+          | None => None{{for c in clauses}}
+          | ({{c.marker}}, let {{c.name}}: {{if c.needs_viewpoint}}this->{{end}}{{c.type}}) =>
+            {{c.body}}{{end}}
           end"""
     )?
 

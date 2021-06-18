@@ -64,6 +64,7 @@ plugin-test: $(plugin_binary)
 	@mkdir -p $(BUILD_GEN_DIR)
 	protoc --pony_out=$(BUILD_GEN_DIR) --plugin=$(plugin_binary) $(EXAMPLES_DIR)/addressbook/addressbook.proto
 	protoc --pony_out=$(BUILD_GEN_DIR) --plugin=$(plugin_binary) $(EXAMPLES_DIR)/packed/packed.proto
+	protoc --pony_out=$(BUILD_GEN_DIR) --plugin=$(plugin_binary) $(EXAMPLES_DIR)/oneof/oneof.proto
 	protoc --pony_out=$(BUILD_GEN_DIR) --plugin=$(plugin_binary) proto2/google/protobuf/compiler/plugin.proto
 	protoc --pony_out=$(BUILD_GEN_DIR) --plugin=$(plugin_binary) proto2/google/protobuf/descriptor.proto
 

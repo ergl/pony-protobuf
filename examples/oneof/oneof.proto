@@ -1,0 +1,17 @@
+syntax = "proto2";
+
+package oneof_package;
+
+message SubMessage {
+  optional int32 a = 1;
+  optional int32 b = 2;
+}
+
+message SampleMessage {
+  oneof test_oneof {
+    int32 field_a = 1;
+    int32 field_b = 2;
+    string name = 3 [default = "foo"];
+    SubMessage sub_message = 4;
+  }
+}
