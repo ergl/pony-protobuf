@@ -18,3 +18,7 @@ Even though nested messages were properly deserialized, if the optional message 
 
 The compiler should now give better error messages.
 
+## Add support for `oneof` fields
+
+The compiler now supports generating code for `oneof` fields. A `oneof` field is represented as a union type, where each element is a tuple of the form `(Name, value)`. Each `Name` is represented by a Pony primitive.
+
