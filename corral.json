@@ -5,7 +5,7 @@
   "deps": [
     {
       "locator": "github.com/ergl/pony-templates.git",
-      "version": "21.3.0-ergl"
+      "version": ""
     },
     {
       "locator": "github.com/ponylang/ponycheck.git",

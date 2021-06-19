@@ -6,7 +6,7 @@
     },
     {
       "locator": "github.com/ergl/pony-templates.git",
-      "revision": "21.3.0-ergl"
+      "revision": "origin/ergl"
     },
     {
       "locator": "github.com/ponylang/regex.git",
