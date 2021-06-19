@@ -258,13 +258,13 @@ class CodeGenWriter
   =>
     // TODO(borja): Same as _fill_write_clause_optional, refactor
     let tpl = TemplateValues
-    tpl("name") = oneof.name
+    tpl("field") = oneof.name
     let clauses = Array[TemplateValue]
     for (marker, field_meta) in oneof.fields.values() do
       let inner_tpl = TemplateValues
       let inner_tpl_props = Map[String, TemplateValue]
       inner_tpl_props("marker") = TemplateValue(marker)
-      inner_tpl_props("name") = TemplateValue(field_meta.name)
+      inner_tpl_props("field") = TemplateValue(field_meta.name)
       inner_tpl_props("type") = TemplateValue(field_meta.pony_type_inner)
       if
         (field_meta.proto_type is MessageType) or
