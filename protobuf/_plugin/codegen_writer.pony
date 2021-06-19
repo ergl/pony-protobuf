@@ -80,7 +80,7 @@ class CodeGenWriter
         tpl("name") = TemplateValue(field.name)
         tpl("pony_type") = TemplateValue(field.pony_type_decl)
         tpl("default") = TemplateValue(field.default_assignment)
-        fields.push(TemplateValue("", tpl))
+        fields.push(TemplateValue.with_properties(tpl))
 
       | let oneof: OneOfMeta =>
         tpl("name") = TemplateValue(oneof.name)
@@ -95,22 +95,19 @@ class CodeGenWriter
           end
 
           // Build the type alias
-          let inner_tpl = TemplateValues
-          let inner_tpl_props = Map[String, TemplateValue]
-          inner_tpl_props("marker") = TemplateValue(marker)
+          let properties = Map[String, TemplateValue]
+          properties("marker") = TemplateValue(marker)
           // Safe to use inner, repeated fields are not allowed inside oneof
-          inner_tpl_props("pony_type") = TemplateValue(field.pony_type_inner)
-          type_alias.push(TemplateValue("", inner_tpl_props))
+          properties("pony_type") = TemplateValue(field.pony_type_inner)
+          type_alias.push(TemplateValue.with_properties(properties))
         end
-        let alias_tpl = TemplateValues
-        alias_tpl("type_aliases") = TemplateValue(type_alias)
         try
           tpl("pony_type") = TemplateValue(
             template_ctx.oneof_field_type_alias.render(
-              alias_tpl
+              TemplateValues.>update("type_aliases", TemplateValue(type_alias))
             )?
           )
-          fields.push(TemplateValue("", tpl))
+          fields.push(TemplateValue.with_properties(tpl))
         end
       end
     end
@@ -194,28 +191,27 @@ class CodeGenWriter
       template_ctx.write_repeated_inner_message_clause.render(tpl)?
     end
 
-  fun _fill_write_clause_optional(
+  fun _fill_write_optional_clause_properties(
     field_meta: FieldMeta,
+    properties: Map[String, TemplateValue],
     template_ctx: GenTemplate)
-    : String
     ?
   =>
-    let tpl = TemplateValues
-    tpl("field") = field_meta.name
-    tpl("type") = field_meta.pony_type_inner
+    properties("field") = TemplateValue(field_meta.name)
+    properties("type") = TemplateValue(field_meta.pony_type_inner)
     if
       (field_meta.proto_type is MessageType) or
       (field_meta.proto_label is Repeated) or
       ((field_meta.wire_type is DelimitedField) and
        (field_meta.pony_type_inner == "Array[U8]"))
     then
-      tpl("needs_viewpoint") = ""
+      properties("needs_viewpoint") = TemplateValue("")
     end
-    let inner_tpl = TemplateValues
-    // Use primed variable inside the optional clause
-    inner_tpl("field") = field_meta.name + "'"
-    inner_tpl("number") = field_meta.number
-    inner_tpl("type") = field_meta.pony_type_inner
+    let body_tpl = TemplateValues
+    // Use primed variable in the match clause body
+    body_tpl("field") = field_meta.name + "'"
+    body_tpl("number") = field_meta.number
+    body_tpl("type") = field_meta.pony_type_inner
     let inner_template = match field_meta.proto_type
     | MessageType => template_ctx.write_inner_message
     | EnumType => template_ctx.write_enum
@@ -232,8 +228,24 @@ class CodeGenWriter
       end
     end
 
-    tpl("body") = inner_template.render(inner_tpl)?
-    template_ctx.write_optional_clause.render(tpl)?
+    properties("body") = TemplateValue(inner_template.render(body_tpl)?)
+
+
+  fun _fill_write_clause_optional(
+    field_meta: FieldMeta,
+    template_ctx: GenTemplate)
+    : String
+    ?
+  =>
+    let properties = Map[String, TemplateValue]
+    _fill_write_optional_clause_properties(
+      field_meta,
+      properties,
+      template_ctx
+    )?
+    template_ctx.write_optional_clause.render(
+      TemplateValues.with_values(properties)
+    )?
 
   fun _fill_write_clause(
     field_meta: FieldMeta,
@@ -256,46 +268,18 @@ class CodeGenWriter
     : String
     ?
   =>
-    // TODO(borja): Same as _fill_write_clause_optional, refactor
     let tpl = TemplateValues
     tpl("field") = oneof.name
     let clauses = Array[TemplateValue]
     for (marker, field_meta) in oneof.fields.values() do
-      let inner_tpl = TemplateValues
-      let inner_tpl_props = Map[String, TemplateValue]
-      inner_tpl_props("marker") = TemplateValue(marker)
-      inner_tpl_props("field") = TemplateValue(field_meta.name)
-      inner_tpl_props("type") = TemplateValue(field_meta.pony_type_inner)
-      if
-        (field_meta.proto_type is MessageType) or
-        (field_meta.proto_label is Repeated) or
-        ((field_meta.wire_type is DelimitedField) and
-         (field_meta.pony_type_inner == "Array[U8]"))
-      then
-        inner_tpl_props("needs_viewpoint") = TemplateValue("")
-      end
-      let body_tpl = TemplateValues
-      body_tpl("field") = field_meta.name
-      body_tpl("number") = field_meta.number
-      body_tpl("type") = field_meta.pony_type_inner
-      let inner_template = match field_meta.proto_type
-      | MessageType => template_ctx.write_inner_message
-      | EnumType => template_ctx.write_enum
-      | PrimitiveType => match field_meta.wire_type
-        | Fixed32Field => template_ctx.write_fixed_32
-        | Fixed64Field => template_ctx.write_fixed_64
-        | DelimitedField => template_ctx.write_bytes
-        | VarintField =>
-          if field_meta.uses_zigzag then
-            template_ctx.write_varint_zigzag
-          else
-            template_ctx.write_varint
-          end
-        end
-      end
-
-      inner_tpl_props("body") = TemplateValue(inner_template.render(body_tpl)?)
-      clauses.push(TemplateValue("", inner_tpl_props))
+      let field_branch_properties = Map[String, TemplateValue]
+      field_branch_properties("marker") = TemplateValue(marker)
+      _fill_write_optional_clause_properties(
+        field_meta,
+        field_branch_properties,
+        template_ctx
+      )?
+      clauses.push(TemplateValue.with_properties(field_branch_properties))
     end
     tpl("clauses") = TemplateValue(clauses)
     template_ctx.write_oneof_clause.render(tpl)?
@@ -384,12 +368,11 @@ class CodeGenWriter
     for (name, meta) in oneof.fields.values() do
       if meta.proto_type is MessageType then
         need_to_generate = true
-        let inner_tpl = TemplateValues
-        let inner_tpl_props = Map[String, TemplateValue]
-        inner_tpl_props("marker") = TemplateValue(name)
-        inner_tpl_props("name") = TemplateValue(meta.name)
-        inner_tpl_props("type") = TemplateValue(meta.pony_type_inner)
-        clauses.push(TemplateValue("", inner_tpl_props))
+        let properties = Map[String, TemplateValue]
+        properties("marker") = TemplateValue(name)
+        properties("name") = TemplateValue(meta.name)
+        properties("type") = TemplateValue(meta.pony_type_inner)
+        clauses.push(TemplateValue.with_properties(properties))
       else
         more_fields = true
       end
@@ -465,53 +448,64 @@ class CodeGenWriter
     end
     template_ctx.size_packed_clause.render(tpl)?
 
+  fun _fill_size_clause_properties(
+    field_meta: FieldMeta,
+    properties: Map[String, TemplateValue])
+  =>
+    properties("name") = TemplateValue(field_meta.name)
+    properties("number") = TemplateValue(field_meta.number)
+    properties("type") = TemplateValue(field_meta.pony_type_inner)
+    match field_meta.proto_type
+    | MessageType =>
+      properties("needs_viewpoint") = TemplateValue("")
+      properties("method") = TemplateValue("inner_message")
+      properties("needs_name_arg") = TemplateValue("")
+    | EnumType =>
+      properties("method") = TemplateValue("enum")
+      properties("needs_name_arg") = TemplateValue("")
+    | PrimitiveType =>
+      match field_meta.wire_type
+      | Fixed32Field => properties("method") = TemplateValue("fixed32")
+      | Fixed64Field => properties("method") = TemplateValue("fixed64")
+      | DelimitedField =>
+        properties("method") = TemplateValue("delimited")
+        // TODO(borja): This is a hack, find a better way
+        if field_meta.pony_type_inner == "Array[U8]" then
+          properties("needs_viewpoint") = TemplateValue("")
+        end
+        properties("needs_name_arg") = TemplateValue("")
+      | VarintField =>
+        properties("method_type") =
+          TemplateValue(field_meta.pony_type_inner)
+        properties("method") =
+          if field_meta.uses_zigzag then
+            TemplateValue("varint_zigzag")
+          else
+            TemplateValue("varint")
+          end
+        properties("needs_name_arg") = TemplateValue("")
+      end
+    end
+
   fun _fill_size_clause_default(
     field_meta: FieldMeta,
     template_ctx: GenTemplate)
     : String
     ?
   =>
-    let tpl = TemplateValues
-    tpl("name") = field_meta.name
-    tpl("number") = field_meta.number
-    tpl("type") = field_meta.pony_type_inner
-    match field_meta.proto_type
-    | MessageType =>
-      tpl("needs_viewpoint") = ""
-      tpl("method") = "inner_message"
-      tpl("needs_name_arg") = ""
-    | EnumType =>
-      tpl("method") = "enum"
-      tpl("needs_name_arg") = ""
-    | PrimitiveType =>
-      match field_meta.wire_type
-      | Fixed32Field => tpl("method") = "fixed32"
-      | Fixed64Field => tpl("method") = "fixed64"
-      | DelimitedField =>
-        tpl("method") = "delimited"
-        // TODO(borja): This is a hack, find a better way
-        if field_meta.pony_type_inner == "Array[U8]" then
-          tpl("needs_viewpoint") = ""
-        end
-        tpl("needs_name_arg") = ""
-      | VarintField =>
-        tpl("method_type") = field_meta.pony_type_inner
-        tpl("method") =
-          if field_meta.uses_zigzag then
-            "varint_zigzag"
-          else
-            "varint"
-          end
-        tpl("needs_name_arg") = ""
-      end
-    end
+    let properties = Map[String, TemplateValue]
+    _fill_size_clause_properties(field_meta, properties)
     match field_meta.proto_label
     | Repeated =>
-      tpl("needs_viewpoint") = ""
-      template_ctx.size_repeated_clause.render(tpl)?
+      properties("needs_viewpoint") = TemplateValue("")
+      template_ctx.size_repeated_clause.render(
+        TemplateValues.with_values(properties)
+      )?
     else
       // Not packed, handled elsewhere
-      template_ctx.size_optional_clause.render(tpl)?
+      template_ctx.size_optional_clause.render(
+        TemplateValues.with_values(properties)
+      )?
     end
 
   fun _fill_size_clause(
@@ -534,50 +528,14 @@ class CodeGenWriter
     : String
     ?
   =>
-    // This is the same as _fill_size_clause_default, find a way
-    // to refactor
     let tpl = TemplateValues
     tpl("name") = oneof.name
     let clauses = Array[TemplateValue]
-    for (name, field_meta) in oneof.fields.values() do
-      let inner_tpl = TemplateValues
-      let inner_tpl_props = Map[String, TemplateValue]
-      inner_tpl_props("marker") = TemplateValue(name)
-      inner_tpl_props("name") = TemplateValue(field_meta.name)
-      inner_tpl_props("number") = TemplateValue(field_meta.number)
-      inner_tpl_props("type") = TemplateValue(field_meta.pony_type_inner)
-      match field_meta.proto_type
-      | MessageType =>
-        inner_tpl_props("needs_viewpoint") = TemplateValue("")
-        inner_tpl_props("method") = TemplateValue("inner_message")
-        inner_tpl_props("needs_name_arg") = TemplateValue("")
-      | EnumType =>
-        inner_tpl_props("method") = TemplateValue("enum")
-        inner_tpl_props("needs_name_arg") = TemplateValue("")
-      | PrimitiveType =>
-        match field_meta.wire_type
-        | Fixed32Field => inner_tpl_props("method") = TemplateValue("fixed32")
-        | Fixed64Field => inner_tpl_props("method") = TemplateValue("fixed64")
-        | DelimitedField =>
-          inner_tpl_props("method") = TemplateValue("delimited")
-          // TODO(borja): This is a hack, find a better way
-          if field_meta.pony_type_inner == "Array[U8]" then
-            inner_tpl_props("needs_viewpoint") = TemplateValue("")
-          end
-          inner_tpl_props("needs_name_arg") = TemplateValue("")
-        | VarintField =>
-          inner_tpl_props("method_type") =
-            TemplateValue(field_meta.pony_type_inner)
-          inner_tpl_props("method") =
-            if field_meta.uses_zigzag then
-              TemplateValue("varint_zigzag")
-            else
-              TemplateValue("varint")
-            end
-          inner_tpl_props("needs_name_arg") = TemplateValue("")
-        end
-      end
-      clauses.push(TemplateValue("", inner_tpl_props))
+    for (marker, field_meta) in oneof.fields.values() do
+      let field_properties = Map[String, TemplateValue]
+      field_properties("marker") = TemplateValue(marker)
+      _fill_size_clause_properties(field_meta, field_properties)
+      clauses.push(TemplateValue.with_properties(field_properties))
     end
     tpl("clauses") = TemplateValue(clauses)
     template_ctx.size_oneof_clause.render(tpl)?
@@ -727,22 +685,24 @@ class CodeGenWriter
     end
     template.render(tpl)?
 
-  fun _fill_read_clause_optional(
+  fun _fill_read_optional_clause_properties(
     field_meta: FieldMeta,
+    parent_tpl: TemplateValues,
+    inner_message_template: Template,
     template_ctx: GenTemplate)
     : String
     ?
   =>
-    let tpl = TemplateValues
-    tpl("name") = field_meta.name
-    tpl("number") = field_meta.number
-    tpl("wire_type") = field_meta.wire_type.string()
+    parent_tpl("name") = field_meta.name
+    parent_tpl("number") = field_meta.number
+    parent_tpl("wire_type") = field_meta.wire_type.string()
     let template = match field_meta.proto_type
     | MessageType =>
-      tpl("type") = field_meta.pony_type_inner
-      template_ctx.read_inner_message
+      parent_tpl("type") = field_meta.pony_type_inner
+      inner_message_template
     | EnumType =>
-      tpl("enum_builder") = GenNames.enum_builder(field_meta.pony_type_inner)
+      parent_tpl("enum_builder") =
+        GenNames.enum_builder(field_meta.pony_type_inner)
       template_ctx.read_enum
     | PrimitiveType =>
       match field_meta.wire_type
@@ -753,18 +713,23 @@ class CodeGenWriter
           template_ctx.read_string
         end
       | VarintField =>
-        tpl("varint_kind") = GenTypes.varint_kind(field_meta.uses_zigzag,
-          field_meta.pony_type_inner)
-        let conv_type = GenTypes.convtype(VarintField, field_meta.uses_zigzag,
-          field_meta.pony_type_inner)
+        parent_tpl("varint_kind") = GenTypes.varint_kind(
+          field_meta.uses_zigzag,
+          field_meta.pony_type_inner
+        )
+        let conv_type = GenTypes.convtype(
+          VarintField,
+          field_meta.uses_zigzag,
+          field_meta.pony_type_inner
+        )
         match conv_type
         | None => None
         | let conv_type': String =>
-          tpl("conv_type") = conv_type'
+          parent_tpl("conv_type") = conv_type'
         end
         template_ctx.read_varint
       else
-        tpl("fixed_kind") =
+        parent_tpl("fixed_kind") =
           if
             (field_meta.pony_type_inner == "F32") or
             (field_meta.pony_type_inner == "F64") then
@@ -772,20 +737,36 @@ class CodeGenWriter
           else
               "integer"
           end
-        tpl("fixed_size") =
+        parent_tpl("fixed_size") =
           if field_meta.wire_type is Fixed32Field then "32" else "64" end
         // Do we need a cast between types?
-        let conv_type = GenTypes.convtype(field_meta.wire_type, false,
-         field_meta.pony_type_inner)
+        let conv_type = GenTypes.convtype(
+          field_meta.wire_type,
+          false,
+          field_meta.pony_type_inner
+        )
         match conv_type
         | None => None
         | let conv_type': String =>
-          tpl("conv_type") = conv_type'
+          parent_tpl("conv_type") = conv_type'
         end
         template_ctx.read_fixed
       end
     end
-    template.render(tpl)?
+    template.render(parent_tpl)?
+
+  fun _fill_read_clause_optional(
+    field_meta: FieldMeta,
+    template_ctx: GenTemplate)
+    : String
+    ?
+  =>
+    _fill_read_optional_clause_properties(
+      field_meta,
+      TemplateValues,
+      template_ctx.read_inner_message,
+      template_ctx
+    )?
 
   fun _fill_read_clause(
     field_meta: FieldMeta,
@@ -801,67 +782,6 @@ class CodeGenWriter
     else
       _fill_read_clause_optional(field_meta, template_ctx)?
     end
-
-  fun _fill_read_oneof_clause(
-    field_meta: FieldMeta,
-    tpl: TemplateValues,
-    template_ctx: GenTemplate)
-    : String
-    ?
-  =>
-    // TODO(borja): Same as _fill_read_clause_optional, refactor
-    tpl("name") = field_meta.name
-    tpl("number") = field_meta.number
-    tpl("wire_type") = field_meta.wire_type.string()
-    let template = match field_meta.proto_type
-    | MessageType =>
-      tpl("type") = field_meta.pony_type_inner
-      template_ctx.read_inner_message_oneof
-    | EnumType =>
-      tpl("enum_builder") = GenNames.enum_builder(field_meta.pony_type_inner)
-      template_ctx.read_enum
-    | PrimitiveType =>
-      match field_meta.wire_type
-      | DelimitedField =>
-        if field_meta.pony_type_inner == "Array[U8]" then
-          template_ctx.read_bytes
-        else
-          template_ctx.read_string
-        end
-      | VarintField =>
-        tpl("varint_kind") = GenTypes.varint_kind(field_meta.uses_zigzag,
-          field_meta.pony_type_inner)
-        let conv_type = GenTypes.convtype(VarintField, field_meta.uses_zigzag,
-          field_meta.pony_type_inner)
-        match conv_type
-        | None => None
-        | let conv_type': String =>
-          tpl("conv_type") = conv_type'
-        end
-        template_ctx.read_varint
-      else
-        tpl("fixed_kind") =
-          if
-            (field_meta.pony_type_inner == "F32") or
-            (field_meta.pony_type_inner == "F64") then
-              "float"
-          else
-              "integer"
-          end
-        tpl("fixed_size") =
-          if field_meta.wire_type is Fixed32Field then "32" else "64" end
-        // Do we need a cast between types?
-        let conv_type = GenTypes.convtype(field_meta.wire_type, false,
-         field_meta.pony_type_inner)
-        match conv_type
-        | None => None
-        | let conv_type': String =>
-          tpl("conv_type") = conv_type'
-        end
-        template_ctx.read_fixed
-      end
-    end
-    template.render(tpl)?
 
   fun _fill_read_clauses(
     metas: Array[DeclMeta] box,
@@ -883,7 +803,14 @@ class CodeGenWriter
             tpl("field_name") = oneof.name
             tpl("marker") = marker
             clauses.push(
-              TemplateValue(_fill_read_oneof_clause(field, tpl, template_ctx)?)
+              TemplateValue(
+                _fill_read_optional_clause_properties(
+                  field,
+                  tpl,
+                  template_ctx.read_inner_message_oneof,
+                  template_ctx
+                )?
+              )
           )
           end
         end
@@ -911,8 +838,8 @@ class CodeGenWriter
     template_ctx: GenTemplate)
   =>
     let message_structure = TemplateValues
-    message_structure("oneof_primitives") = _fill_oneof_primitives(field_info)
     message_structure("name") = message_name
+    message_structure("oneof_primitives") = _fill_oneof_primitives(field_info)
     message_structure("fields") = _fill_fields(field_info, template_ctx)
     message_structure("initializer_clauses") = _fill_init_clauses(field_info,
       template_ctx)
