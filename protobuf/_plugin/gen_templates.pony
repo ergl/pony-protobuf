@@ -359,9 +359,9 @@ class val GenTemplate
 
     write_oneof_clause = Template.parse(
       """
-      match {{name}}
+      match {{field}}
           | None => None{{for c in clauses}}
-          | ({{c.marker}}, let {{c.name}}: {{if c.needs_viewpoint}}this->{{end}}{{c.type}}) =>
+          | ({{c.marker}}, let {{c.field}}: {{if c.needs_viewpoint}}this->{{end}}{{c.type}}) =>
             {{c.body}}{{end}}
           end"""
     )?
