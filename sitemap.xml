@@ -1,59 +1,59 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url>
      <loc>https://ergl.github.io/pony-protobuf/</loc>
-     <lastmod>2021-06-07</lastmod>
+     <lastmod>2021-07-15</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://ergl.github.io/pony-protobuf/protobuf--index/</loc>
-     <lastmod>2021-06-07</lastmod>
+     <lastmod>2021-07-15</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://ergl.github.io/pony-protobuf/protobuf-ZigZag/</loc>
-     <lastmod>2021-06-07</lastmod>
+     <lastmod>2021-07-15</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://ergl.github.io/pony-protobuf/protobuf-ProtoWriter/</loc>
-     <lastmod>2021-06-07</lastmod>
+     <lastmod>2021-07-15</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://ergl.github.io/pony-protobuf/protobuf-ProtoReader/</loc>
-     <lastmod>2021-06-07</lastmod>
+     <lastmod>2021-07-15</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://ergl.github.io/pony-protobuf/protobuf-ProtoMessage/</loc>
-     <lastmod>2021-06-07</lastmod>
+     <lastmod>2021-07-15</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://ergl.github.io/pony-protobuf/protobuf-ProtoEnumValue/</loc>
-     <lastmod>2021-06-07</lastmod>
+     <lastmod>2021-07-15</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://ergl.github.io/pony-protobuf/protobuf-ProtoEnum/</loc>
-     <lastmod>2021-06-07</lastmod>
+     <lastmod>2021-07-15</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://ergl.github.io/pony-protobuf/protobuf-VarintField/</loc>
-     <lastmod>2021-06-07</lastmod>
+     <lastmod>2021-07-15</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://ergl.github.io/pony-protobuf/protobuf-Fixed32Field/</loc>
-     <lastmod>2021-06-07</lastmod>
+     <lastmod>2021-07-15</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://ergl.github.io/pony-protobuf/protobuf-Fixed64Field/</loc>
-     <lastmod>2021-06-07</lastmod>
+     <lastmod>2021-07-15</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://ergl.github.io/pony-protobuf/protobuf-DelimitedField/</loc>
-     <lastmod>2021-06-07</lastmod>
+     <lastmod>2021-07-15</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://ergl.github.io/pony-protobuf/protobuf-TagKind/</loc>
-     <lastmod>2021-06-07</lastmod>
+     <lastmod>2021-07-15</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://ergl.github.io/pony-protobuf/protobuf-FieldSize/</loc>
-     <lastmod>2021-06-07</lastmod>
+     <lastmod>2021-07-15</lastmod>
      <changefreq>daily</changefreq>
     </url>
 </urlset>
