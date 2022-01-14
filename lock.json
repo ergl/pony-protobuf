@@ -2,19 +2,19 @@
   "locks": [
     {
       "locator": "github.com/ponylang/peg.git",
-      "revision": "0.1.1"
+      "revision": "0.1.2"
     },
     {
       "locator": "github.com/ergl/pony-templates.git",
-      "revision": "origin/ergl"
-    },
-    {
-      "locator": "github.com/ponylang/regex.git",
-      "revision": "1.1.2"
+      "revision": "origin/ergl/template_composition"
     },
     {
       "locator": "github.com/ponylang/valbytes.git",
       "revision": "0.6.0"
+    },
+    {
+      "locator": "github.com/ponylang/ponycheck.git",
+      "revision": "0.6.1"
     }
   ]
 }
