@@ -1,5 +1,7 @@
 use ".."
 
+use files = "files"
+
 class iso InputReader is InputNotify
   let _main: Main
   let _chunk_size: USize
@@ -18,10 +20,34 @@ class iso InputReader is InputNotify
     end
 
 actor Main
+  let _repo_url: String = "https://github.com/ergl/pony-protobuf"
+  let _program_name: String
+
   let _env: Env
 
   new create(env: Env) =>
     _env = env
+
+    _program_name =
+      try
+        files.Path.base(_env.args(0)?)
+      else
+        "pony-protobuf"
+      end
+
+    if _env.args.size() == 2 then
+      try
+        let arg = _env.args(1)?
+        if (arg == "-v") or (arg == "--version") then
+          _env.out.print(_program_name + " " + PluginVersion())
+          return
+        elseif (arg == "-h") or (arg == "--help") then
+          _env.out.print("See " + _repo_url + " for usage information")
+          return
+        end
+      end
+    end
+
     let chunk_size: USize = 1024
     env.input(InputReader(this, chunk_size), chunk_size)
 
