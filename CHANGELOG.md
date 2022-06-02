@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file. This projec
 
 ### Fixed
 
+- Update to Pony 0.50.0 ([PR #24](https://github.com/ergl/pony-protobuf/pull/24))
 
 ### Added
 
