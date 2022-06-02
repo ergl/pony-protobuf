@@ -13,7 +13,7 @@
     "homepage": "https://github.com/ergl/pony-protobuf",
     "license": "BSD-2-Clause",
     "documentation_url": "https://ergl.github.io/pony-protobuf/",
-    "version": "0.2.2",
+    "version": "0.2.3",
     "name": "protobuf"
   }
 }
