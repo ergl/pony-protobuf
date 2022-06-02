@@ -11,7 +11,7 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v2
       - name: Generate documentation and upload
-        uses: docker://ponylang/library-documentation-action:0.1.6
+        uses: docker://ponylang/library-documentation-action:release
         with:
           site_url: "https://ergl.github.io/pony-protobuf/"
           library_name: "protobuf"
