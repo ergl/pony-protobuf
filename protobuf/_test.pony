@@ -1,5 +1,5 @@
-use "ponytest"
-use "ponycheck"
+use "pony_test"
+use "pony_check"
 use "buffered"
 
 primitive _TestUtils

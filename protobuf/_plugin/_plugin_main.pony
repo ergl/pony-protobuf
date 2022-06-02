@@ -11,7 +11,7 @@ class iso InputReader is InputNotify
     _main = main
     _chunk_size = chunk_size
 
-  fun ref apply(data: Array[U8] iso^) =>
+  fun ref apply(data: Array[U8] iso) =>
     let size = data.size()
     _reader.append(consume data)
     if size < _chunk_size then
