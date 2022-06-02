@@ -1,0 +1,807 @@
+
+
+
+
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      <meta http-equiv="x-ua-compatible" content="ie=edge">
+      
+      
+        <link rel="canonical" href="https://ergl.github.io/pony-protobuf/src/protobuf/_test/">
+      
+      
+      
+        <meta name="lang:clipboard.copy" content="Copy to clipboard">
+      
+        <meta name="lang:clipboard.copied" content="Copied to clipboard">
+      
+        <meta name="lang:search.language" content="en">
+      
+        <meta name="lang:search.pipeline.stopwords" content="True">
+      
+        <meta name="lang:search.pipeline.trimmer" content="True">
+      
+        <meta name="lang:search.result.none" content="No matching documents">
+      
+        <meta name="lang:search.result.one" content="1 matching document">
+      
+        <meta name="lang:search.result.other" content="# matching documents">
+      
+        <meta name="lang:search.tokenizer" content="[\s\-]+">
+      
+      <link rel="shortcut icon" href="../../../assets/images/logo.png">
+      <meta name="generator" content="mkdocs-1.3.0, mkdocs-ponylang-0.2.8">
+    
+    
+      
+        <title> test - protobuf</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/application.b80b25f7.css">
+      
+    
+    
+      <script src="../../../assets/javascripts/modernizr.0b5df86e.js"></script>
+    
+    
+      <link href="https://fonts.gstatic.com" rel="preconnect" crossorigin>
+      
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,400i,700|Roboto+Mono">
+        <style>body,input{font-family:"Roboto","Helvetica Neue",Helvetica,Arial,sans-serif}code,kbd,pre{font-family:"Roboto Mono","Courier New",Courier,monospace}</style>
+      
+      <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    
+    
+    
+  </head>
+  
+    <body dir="ltr">
+  
+    <svg class="md-svg">
+      <defs>
+        
+        
+      </defs>
+    </svg>
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" data-md-component="overlay" for="__drawer"></label>
+    
+    
+      <header class="md-header" data-md-component="header">
+  <nav class="md-header-nav md-grid">
+    <div class="md-flex">
+      <div class="md-flex__cell md-flex__cell--shrink">
+          <a href="https://ergl.github.io/pony-protobuf/" title="protobuf" class="md-header-nav__button md-logo">
+          
+            <img src="../../../assets/images/logo.png" width="24" height="24">
+          
+        </a>
+      </div>
+      <div class="md-flex__cell md-flex__cell--shrink">
+        <label class="md-icon md-icon--menu md-header-nav__button" for="__drawer"></label>
+      </div>
+      <div class="md-flex__cell md-flex__cell--stretch">
+        <div class="md-flex__ellipsis md-header-nav__title" data-md-component="title">
+          
+            
+              <span class="md-header-nav__topic">
+                protobuf
+              </span>
+              <span class="md-header-nav__topic">
+                 test
+              </span>
+            
+          
+        </div>
+      </div>
+      <div class="md-flex__cell md-flex__cell--shrink">
+        
+          
+            <label class="md-icon md-icon--search md-header-nav__button" for="__search"></label>
+            
+<div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="query" data-md-state="active">
+      <label class="md-icon md-search__icon" for="__search"></label>
+      <button type="reset" class="md-icon md-search__icon" data-md-component="reset" tabindex="-1">
+        &#xE5CD;
+      </button>
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="result">
+          <div class="md-search-result__meta">
+            Type to start searching
+          </div>
+          <ol class="md-search-result__list"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+          
+        
+      </div>
+      
+    </div>
+  </nav>
+</header>
+    
+    <div class="md-container">
+      
+        
+      
+      
+      <main class="md-main">
+        <div class="md-main__inner md-grid" data-md-component="container">
+          
+            
+              <div class="md-sidebar md-sidebar--primary" data-md-component="navigation">
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    <nav class="md-nav md-nav--primary" data-md-level="0">
+  <label class="md-nav__title md-nav__title--site" for="__drawer">
+    <span class="md-nav__button md-logo">
+      
+        <img src="../../../assets/images/logo.png" width="48" height="48">
+      
+    </span>
+    protobuf
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+
+  <li class="md-nav__item">
+    <a href="../../.." title="protobuf" class="md-nav__link">
+      protobuf
+    </a>
+  </li>
+
+    
+      
+      
+      
+
+
+  <li class="md-nav__item md-nav__item--nested">
+    
+      <input class="md-toggle md-nav__toggle" data-md-toggle="nav-2" type="checkbox" id="nav-2">
+    
+    <label class="md-nav__link" for="nav-2">
+      package protobuf
+    </label>
+    <nav class="md-nav" data-md-component="collapsible" data-md-level="1">
+      <label class="md-nav__title" for="nav-2">
+        package protobuf
+      </label>
+      <ul class="md-nav__list" data-md-scrollfix>
+        
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../../protobuf--index/" title="Package" class="md-nav__link">
+      Package
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../../protobuf-ZigZag/" title="primitive ZigZag" class="md-nav__link">
+      primitive ZigZag
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../../protobuf-ProtoWriter/" title="class ProtoWriter" class="md-nav__link">
+      class ProtoWriter
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../../protobuf-ProtoReader/" title="class ProtoReader" class="md-nav__link">
+      class ProtoReader
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../../protobuf-ProtoMessage/" title="trait ProtoMessage" class="md-nav__link">
+      trait ProtoMessage
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../../protobuf-ProtoEnumValue/" title="trait ProtoEnumValue" class="md-nav__link">
+      trait ProtoEnumValue
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../../protobuf-ProtoEnum/" title="trait ProtoEnum" class="md-nav__link">
+      trait ProtoEnum
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../../protobuf-VarintField/" title="primitive VarintField" class="md-nav__link">
+      primitive VarintField
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../../protobuf-Fixed32Field/" title="primitive Fixed32Field" class="md-nav__link">
+      primitive Fixed32Field
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../../protobuf-Fixed64Field/" title="primitive Fixed64Field" class="md-nav__link">
+      primitive Fixed64Field
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../../protobuf-DelimitedField/" title="primitive DelimitedField" class="md-nav__link">
+      primitive DelimitedField
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../../protobuf-TagKind/" title="type TagKind" class="md-nav__link">
+      type TagKind
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../../protobuf-FieldSize/" title="primitive FieldSize" class="md-nav__link">
+      primitive FieldSize
+    </a>
+  </li>
+
+        
+          
+          
+          
+
+
+  <li class="md-nav__item">
+    <a href="../../../protobuf-Main/" title="actor Main" class="md-nav__link">
+      actor Main
+    </a>
+  </li>
+
+        
+      </ul>
+    </nav>
+  </li>
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          <div class="md-content">
+            <article class="md-content__inner md-typeset">
+              
+                
+                
+                  <h1> test</h1>
+                
+                <pre><code class="language-pony-full-source">use &quot;pony_test&quot;
+use &quot;pony_check&quot;
+use &quot;buffered&quot;
+
+primitive _TestUtils
+  fun byteseq_iter_size(data: ByteSeqIter): USize =&gt;
+    var size: USize = 0
+    for v in data.values() do
+      size = size + v.size()
+    end
+    size
+
+primitive _CustomGenerators
+  fun field_n(): Generator[U64] =&gt;
+    // From https://developers.google.com/protocol-buffers/docs/proto#assigning_field_numbers
+    // Since key types must fit into 32 bits, and 3 are assigned to the key type, the max
+    // number of field is 2^(32-3) - 1
+    Generators.u64(where max = 536_870_911)
+
+  fun f32(): Generator[F32] =&gt;
+    Generator[F32](
+      object is GenObj[F32]
+        fun generate(rnd: Randomness): F32 =&gt; rnd.f32()
+      end
+    )
+
+  fun f64(): Generator[F64] =&gt;
+    Generator[F64](
+      object is GenObj[F64]
+        fun generate(rnd: Randomness): F64 =&gt; rnd.f64()
+      end
+    )
+
+  fun key_type(): Generator[TagKind] =&gt;
+    Generator[TagKind](
+      object is GenObj[TagKind]
+       fun generate(rnd: Randomness): TagKind =&gt;
+         match rnd.u8() % 4
+         | 0 =&gt; VarintField
+         | 1 =&gt; Fixed32Field
+         | 2 =&gt; Fixed64Field
+         else
+           DelimitedField
+         end
+      end
+    )
+
+actor Main is TestList
+  new make () =&gt; None
+  new create(env: Env) =&gt; PonyTest(env, this)
+
+  fun tag tests(test: PonyTest) =&gt;
+    test(_SimpleTest)
+
+    // Encode / decode tests
+    test(Property1UnitTest[U64](_TestUnsignedEncodeProperty))
+    test(Property1UnitTest[I64](_TestSignedEncodeProperty))
+    test(Property1UnitTest[I64](_TestZigZagSignedEncodeProperty))
+    test(Property1UnitTest[F32](_TestFixed32EncodeProperty))
+    test(Property1UnitTest[F64](_TestFixed64EncodeProperty))
+    test(Property1UnitTest[String](_TestDelimitedEncodeProperty))
+    test(Property2UnitTest[U64, TagKind](_TestFieldTypeEncodeProperty))
+
+    // Field size tests
+    test(Property2UnitTest[U64, U64](_TestEncodedUnsignedSizeProperty))
+    test(Property2UnitTest[U64, I64](_TestEncodedSignedSizeProperty))
+    test(Property2UnitTest[U64, I64](_TestEncodedZigZagSignedSizeProperty))
+    test(Property2UnitTest[U64, F32](_TestEncodedFixed32SizeProperty))
+    test(Property2UnitTest[U64, F64](_TestEncodedFixed64SizeProperty))
+    test(Property2UnitTest[U64, String](_TestEncodedDelimitedSizeProperty))
+
+    // Skip tests
+    test(Property1UnitTest[U64](_TestSkipUnsignedVarintProperty))
+    test(Property1UnitTest[I64](_TestSkipSignedVarintProperty))
+    test(Property1UnitTest[I64](_TestSkipZigZagSignedVarintProperty))
+    test(Property1UnitTest[F32](_TestSkipFixed32Property))
+    test(Property1UnitTest[F64](_TestSkipFixed64Property))
+    test(Property1UnitTest[String](_TestSkipDelimitedProperty))
+
+class iso _SimpleTest is UnitTest
+  fun name(): String =&gt; &quot;test/simple&quot;
+  fun apply(t: TestHelper) =&gt;
+    let buf_1 = recover val [as U8: 1] end
+    let buf_300 = recover val [as U8: 0b1010_1100; 0b10] end
+    try
+      let first = ProtoReader.&gt;append(buf_1).read_varint_64()?
+      t.assert_eq[U64](first, 1)
+
+      let second = ProtoReader.&gt;append(buf_300).read_varint_64()?
+      t.assert_eq[U64](second, 300)
+
+      t.assert_array_eq[U8](
+        buf_1,
+        ProtoWriter .&gt; write_varint[U64](first).done_array()
+      )
+      t.assert_array_eq[U8](
+        buf_300,
+        ProtoWriter .&gt; write_varint[U64](second).done_array()
+      )
+    else
+      t.fail(&quot;Error&quot;)
+      t.complete(true)
+    end
+
+class iso _TestUnsignedEncodeProperty is Property1[U64]
+  fun name(): String =&gt; &quot;encode_decode_property/unsigned_varint&quot;
+  fun gen(): Generator[U64] =&gt; Generators.u64()
+  fun property(arg1: U64, ph: PropertyHelper) =&gt;
+    try
+      let encoded = ProtoWriter.&gt;write_varint[U64](arg1).done_array()
+      let decoded = ProtoReader.&gt;append(consume encoded).read_varint_64()?
+      ph.assert_eq[U64](arg1, decoded)
+    else
+      ph.fail()
+    end
+
+class iso _TestSignedEncodeProperty is Property1[I64]
+  fun name(): String =&gt; &quot;encode_decode_property/signed_varint&quot;
+  fun gen(): Generator[I64] =&gt; Generators.i64()
+  fun property(arg1: I64, ph: PropertyHelper) =&gt;
+    try
+      let encoded = ProtoWriter.&gt;write_varint[I64](arg1).done_array()
+      let decoded = ProtoReader.&gt;append(consume encoded).read_varint_64()?.i64()
+      ph.assert_eq[I64](arg1, decoded)
+    else
+      ph.fail()
+    end
+
+class iso _TestZigZagSignedEncodeProperty is Property1[I64]
+  fun name(): String =&gt; &quot;encode_decode_property/zigzag_signed_varint&quot;
+  fun gen(): Generator[I64] =&gt; Generators.i64()
+  fun property(arg1: I64, ph: PropertyHelper) =&gt;
+    try
+      let encoded = ProtoWriter.&gt;write_varint_zigzag[I64](arg1).done_array()
+      let decoded = ProtoReader.&gt;append(consume encoded).read_varint_zigzag_64()?
+      ph.assert_eq[I64](arg1, decoded)
+    else
+      ph.fail()
+    end
+
+class iso _TestFixed32EncodeProperty is Property1[F32]
+  fun name(): String =&gt; &quot;encode_decode_property/fixed_32&quot;
+  fun gen(): Generator[F32] =&gt; _CustomGenerators.f32()
+  fun property(value: F32, ph: PropertyHelper) =&gt;
+    try
+      let encoded = ProtoWriter.&gt;write_fixed_32[F32](value).done_array()
+      let decoded = ProtoReader.&gt;append(consume encoded).read_fixed_32_float()?
+      ph.assert_eq[F32](value, decoded)
+    else
+      ph.fail()
+    end
+
+class iso _TestFixed64EncodeProperty is Property1[F64]
+  fun name(): String =&gt; &quot;encode_decode_property/fixed_64&quot;
+  fun gen(): Generator[F64] =&gt; _CustomGenerators.f64()
+  fun property(value: F64, ph: PropertyHelper) =&gt;
+    try
+      let encoded = ProtoWriter.&gt;write_fixed_64[F64](value).done_array()
+      let decoded = ProtoReader.&gt;append(consume encoded).read_fixed_64_float()?
+      ph.assert_eq[F64](value, decoded)
+    else
+      ph.fail()
+    end
+
+class iso _TestDelimitedEncodeProperty is Property1[String]
+  fun name(): String =&gt; &quot;encode_decode_property/delimited&quot;
+  fun gen(): Generator[String] =&gt; Generators.byte_string(where gen = Generators.u8())
+  fun property(value: String, ph: PropertyHelper) =&gt;
+    try
+      let encoded = ProtoWriter.&gt;write_bytes(value).done_array()
+      let decoded = ProtoReader.&gt;append(consume encoded).read_string()?
+      ph.assert_eq[String](value, consume val decoded)
+    else
+      ph.fail()
+    end
+
+class iso _TestFieldTypeEncodeProperty is Property2[U64, TagKind]
+  fun name(): String =&gt; &quot;encode_decode_property/wire_types&quot;
+  fun gen1(): Generator[U64] =&gt; _CustomGenerators.field_n()
+  fun gen2(): Generator[TagKind] =&gt; _CustomGenerators.key_type()
+
+  fun property2(arg1: U64, arg2: TagKind, ph: PropertyHelper) =&gt;
+    try
+      let encoded =
+        recover val
+          ProtoWriter.&gt;write_tag(arg1, arg2).done_array()
+        end
+      let decoded = ProtoReader.&gt;append(encoded).read_field_tag()?
+      ph.assert_eq[U64](arg1, decoded._1)
+      ph.assert_is[TagKind](arg2, decoded._2)
+    else
+      ph.fail()
+    end
+
+class iso _TestEncodedUnsignedSizeProperty is Property2[U64, U64]
+  fun name(): String =&gt; &quot;encoded_field_size_property/unsigned_varint&quot;
+  fun gen1(): Generator[U64] =&gt; _CustomGenerators.field_n()
+  fun gen2(): Generator[U64] =&gt; Generators.u64()
+  fun property2(field: U64, value: U64, ph: PropertyHelper) =&gt;
+    let expected_size = FieldSize.varint[U64](field, value)
+    let buf_size =
+      ProtoWriter
+      .&gt; write_tag(field, VarintField)
+      .&gt; write_varint[U64](value)
+      .done_array()
+      .size()
+      .u32()
+    ph.assert_eq[U32](expected_size, buf_size)
+
+class iso _TestEncodedSignedSizeProperty is Property2[U64, I64]
+  fun name(): String =&gt; &quot;encoded_field_size_property/signed_varint&quot;
+  fun gen1(): Generator[U64] =&gt; _CustomGenerators.field_n()
+  fun gen2(): Generator[I64] =&gt; Generators.i64()
+  fun property2(field: U64, value: I64, ph: PropertyHelper) =&gt;
+    let expected_size = FieldSize.varint[I64](field, value)
+    let buf_size =
+      ProtoWriter
+      .&gt; write_tag(field, VarintField)
+      .&gt; write_varint[I64](value)
+      .done_array()
+      .size()
+      .u32()
+    ph.assert_eq[U32](expected_size, buf_size)
+
+class iso _TestEncodedZigZagSignedSizeProperty is Property2[U64, I64]
+  fun name(): String =&gt; &quot;encoded_field_size_property/zigzag_signed_varint&quot;
+  fun gen1(): Generator[U64] =&gt; _CustomGenerators.field_n()
+  fun gen2(): Generator[I64] =&gt; Generators.i64()
+  fun property2(field: U64, value: I64, ph: PropertyHelper) =&gt;
+    let expected_size = FieldSize.varint_zigzag[I64](field, value)
+    let buf_size =
+      ProtoWriter
+      .&gt; write_tag(field, VarintField)
+      .&gt; write_varint_zigzag[I64](value)
+      .done_array()
+      .size()
+      .u32()
+    ph.assert_eq[U32](expected_size, buf_size)
+
+class iso _TestEncodedFixed32SizeProperty is Property2[U64, F32]
+  fun name(): String =&gt; &quot;encoded_field_size_property/fixed_32&quot;
+  fun gen1(): Generator[U64] =&gt; _CustomGenerators.field_n()
+  fun gen2(): Generator[F32] =&gt; _CustomGenerators.f32()
+  fun property2(field: U64, value: F32, ph: PropertyHelper) =&gt;
+    let expected_size = FieldSize.fixed32(field)
+    let buf_size =
+      ProtoWriter
+      .&gt; write_tag(field, Fixed32Field)
+      .&gt; write_fixed_32[F32](value)
+      .done_array()
+      .size()
+      .u32()
+    ph.assert_eq[U32](expected_size, buf_size)
+
+class iso _TestEncodedFixed64SizeProperty is Property2[U64, F64]
+  fun name(): String =&gt; &quot;encoded_field_size_property/fixed_64&quot;
+  fun gen1(): Generator[U64] =&gt; _CustomGenerators.field_n()
+  fun gen2(): Generator[F64] =&gt; _CustomGenerators.f64()
+  fun property2(field: U64, value: F64, ph: PropertyHelper) =&gt;
+    let expected_size = FieldSize.fixed64(field)
+    let buf_size =
+      ProtoWriter
+      .&gt; write_tag(field, Fixed64Field)
+      .&gt; write_fixed_64[F64](value)
+      .done_array()
+      .size()
+      .u32()
+    ph.assert_eq[U32](expected_size, buf_size)
+
+class iso _TestEncodedDelimitedSizeProperty is Property2[U64, String]
+  fun name(): String =&gt; &quot;encoded_field_size_property/delimited&quot;
+  fun gen1(): Generator[U64] =&gt; _CustomGenerators.field_n()
+  fun gen2(): Generator[String] =&gt; Generators.byte_string(where gen = Generators.u8())
+  fun property2(field: U64, value: String, ph: PropertyHelper) =&gt;
+    let expected_size = FieldSize.delimited(field, value)
+    let buf_size =
+      ProtoWriter
+      .&gt; write_tag(field, DelimitedField)
+      .&gt; write_bytes(value)
+      .done_array()
+      .size()
+      .u32()
+    ph.assert_eq[U32](expected_size, buf_size)
+
+class iso _TestSkipUnsignedVarintProperty is Property1[U64]
+  fun name(): String =&gt; &quot;skip_property/unsigned_varint&quot;
+  fun gen(): Generator[U64] =&gt; Generators.u64()
+  fun property(arg1: U64, ph: PropertyHelper) =&gt;
+    try
+      let encoded = ProtoWriter .&gt; write_varint[U64](arg1).done_array()
+      let size =
+        ProtoReader
+        .&gt; append(consume encoded)
+        .&gt; skip_field(VarintField)?
+        .size()
+      ph.assert_eq[USize](0, size)
+    else
+      ph.fail()
+    end
+
+class iso _TestSkipSignedVarintProperty is Property1[I64]
+  fun name(): String =&gt; &quot;skip_property/signed_varint&quot;
+  fun gen(): Generator[I64] =&gt; Generators.i64()
+  fun property(arg1: I64, ph: PropertyHelper) =&gt;
+    try
+      let encoded = ProtoWriter .&gt; write_varint[I64](arg1).done_array()
+      let size =
+        ProtoReader
+        .&gt; append(consume encoded)
+        .&gt; skip_field(VarintField)?
+        .size()
+      ph.assert_eq[USize](0, size)
+    else
+      ph.fail()
+    end
+
+class iso _TestSkipZigZagSignedVarintProperty is Property1[I64]
+  fun name(): String =&gt; &quot;skip_property/zigzag_signed_varint&quot;
+  fun gen(): Generator[I64] =&gt; Generators.i64()
+  fun property(arg1: I64, ph: PropertyHelper) =&gt;
+    try
+      let encoded = ProtoWriter .&gt; write_varint_zigzag[I64](arg1).done_array()
+      let size =
+        ProtoReader
+        .&gt; append(consume encoded)
+        .&gt; skip_field(VarintField)?
+        .size()
+      ph.assert_eq[USize](0, size)
+    else
+      ph.fail()
+    end
+
+class iso _TestSkipFixed32Property is Property1[F32]
+  fun name(): String =&gt; &quot;skip_property/fixed_32&quot;
+  fun gen(): Generator[F32] =&gt; _CustomGenerators.f32()
+  fun property(arg1: F32, ph: PropertyHelper) =&gt;
+    try
+      let encoded = ProtoWriter .&gt; write_fixed_32[F32](arg1).done_array()
+      let size =
+        ProtoReader
+        .&gt; append(consume encoded)
+        .&gt; skip_field(Fixed32Field)?
+        .size()
+      ph.assert_eq[USize](0, size)
+    else
+      ph.fail()
+    end
+
+class iso _TestSkipFixed64Property is Property1[F64]
+  fun name(): String =&gt; &quot;skip_property/fixed_64&quot;
+  fun gen(): Generator[F64] =&gt; _CustomGenerators.f64()
+  fun property(arg1: F64, ph: PropertyHelper) =&gt;
+    try
+      let encoded = ProtoWriter .&gt; write_fixed_64[F64](arg1).done_array()
+      let size =
+        ProtoReader
+        .&gt; append(consume encoded)
+        .&gt; skip_field(Fixed64Field)?
+        .size()
+      ph.assert_eq[USize](0, size)
+    else
+      ph.fail()
+    end
+
+class iso _TestSkipDelimitedProperty is Property1[String]
+  fun name(): String =&gt; &quot;skip_property/delimited&quot;
+  fun gen(): Generator[String] =&gt; Generators.byte_string(where gen = Generators.u8())
+  fun property(arg1: String, ph: PropertyHelper) =&gt;
+    try
+      let encoded = ProtoWriter .&gt; write_bytes(arg1).done_array()
+      let size =
+        ProtoReader
+        .&gt; append(consume encoded)
+        .&gt; skip_field(DelimitedField)?
+        .size()
+      ph.assert_eq[USize](0, size)
+    else
+      ph.fail()
+    end
+
+</code></pre>
+                
+                  
+                
+              
+              
+                
+
+
+              
+            </article>
+          </div>
+        </div>
+      </main>
+      
+        
+<footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-footer-copyright">
+        
+        powered by
+        <a href="https://www.mkdocs.org">MkDocs</a>
+        and
+        <a href="https://squidfunk.github.io/mkdocs-material/">
+          Material for MkDocs</a>
+      </div>
+      
+        
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    
+    <script src="../../../assets/javascripts/application.cb37bb38.js"></script>
+      
+      <script>app.initialize({version:"1.3.0",url:{base:"../../.."}})</script>
+      
+    
+    
+      
+    
+  </body>
+</html>
