@@ -2,17 +2,11 @@
 
 All notable changes to this project will be documented in this file. This project adheres to [Semantic Versioning](http://semver.org/) and [Keep a CHANGELOG](http://keepachangelog.com/).
 
-## [unreleased] - unreleased
+## [0.2.3] - 2022-06-02
 
 ### Fixed
 
 - Update to Pony 0.50.0 ([PR #24](https://github.com/ergl/pony-protobuf/pull/24))
-
-### Added
-
-
-### Changed
-
 
 ## [0.2.2] - 2021-07-15
 
