@@ -1,0 +1,4 @@
+## Update to work with Pony 0.50.0
+
+[Pony 0.50.0](https://github.com/ponylang/ponyc/releases/tag/0.50.0) and [Pony 0.49.0](https://github.com/ponylang/ponyc/releases/tag/0.49.0) introduced several breaking changes. We've updated to account for them all.
+
